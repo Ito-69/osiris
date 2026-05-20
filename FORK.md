@@ -40,6 +40,18 @@
 
 `OsirisMap.tsx` подава `stream_url` и `stream_type` към viewer-а при клик на CCTV маркер.
 
+**Стартов изглед:** центрирана върху България/Балканите (`[25.48, 42.70]`, zoom ~6.5), вместо глобален изглед.
+
+### 4. Балкански OSINT източници
+
+| Слой | Източник | Какво добавя |
+|------|----------|--------------|
+| **Земетресения** | [NIGGG-BAS](https://ndc.niggg.bas.bg/) | Регионална мрежа (30 дни, по-ниски magnitude) — merge с USGS |
+| **Бедствия / alerts** | [GDACS](https://www.gdacs.org/) | EU civil protection — филтрирани за Балканите bbox |
+| **Новини** | [Actualno](https://www.actualno.com/rss/actualno.xml) + [Mediapool](https://www.mediapool.bg/rss/) + BBC Europe | BG/EU RSS + keyword geo-mapping (София, Варна, Балкани…) |
+
+Споделена логика: `src/lib/bulgaria-sources.ts`.
+
 ## Локален Docker deploy
 
 Fork-ът се пуска локално от отделна папка (не е част от git repo-то):

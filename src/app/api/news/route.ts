@@ -8,6 +8,9 @@ import { NextResponse } from 'next/server';
 
 const FEEDS: Record<string, string> = {
   BBC: 'https://feeds.bbci.co.uk/news/world/rss.xml',
+  BBCEurope: 'https://feeds.bbci.co.uk/news/world/europe/rss.xml',
+  Actualno: 'https://www.actualno.com/rss/actualno.xml',
+  Mediapool: 'https://www.mediapool.bg/rss/',
   AlJazeera: 'https://www.aljazeera.com/xml/rss/all.xml',
   NPR: 'https://feeds.npr.org/1004/rss.xml',
   GDACS: 'https://www.gdacs.org/xml/rss.xml',
@@ -32,6 +35,18 @@ const KEYWORD_COORDS: Record<string, [number, number]> = {
   'south china sea': [15.000, 115.000], 'red sea': [20.000, 38.500],
   'persian gulf': [26.500, 51.500], 'strait of hormuz': [26.600, 56.300],
   'black sea': [43.500, 34.000], 'arctic': [75.000, 0.000],
+  // Balkans / Bulgaria
+  'bulgaria': [42.698, 25.485], 'българия': [42.698, 25.485],
+  'sofia': [42.698, 25.485], 'софия': [42.698, 25.485],
+  'plovdiv': [42.136, 24.745], 'пловдив': [42.136, 24.745],
+  'varna': [43.214, 27.915], 'варна': [43.214, 27.915],
+  'burgas': [42.504, 27.462], 'бургас': [42.504, 27.462],
+  'ruse': [43.835, 25.965], 'русе': [43.835, 25.965],
+  'balkans': [42.000, 22.000], 'балкан': [42.000, 22.000],
+  'greece': [39.074, 21.824], 'гърция': [39.074, 21.824],
+  'serbia': [44.016, 21.005], 'сърбия': [44.016, 21.005],
+  'romania': [45.943, 24.967], 'румъния': [45.943, 24.967],
+  'turkey': [39.000, 35.000], 'турция': [39.000, 35.000],
 };
 
 function scoreRisk(title: string, summary: string): number {
