@@ -10,49 +10,28 @@ const ATTiki_ODOS_CAMERAS: Array<{
   lat: number;
   lng: number;
 }> = [
-  {
-    alias: 'cam128',
-    name: 'I/C D. Plakentias – Imittos Ring Road',
-    city: 'Athens',
-    lat: 38.0208,
-    lng: 23.8578,
-  },
-  {
-    alias: 'cam231',
-    name: 'I/C Papagou (Imittos Ring Road)',
-    city: 'Athens',
-    lat: 37.9906,
-    lng: 23.7947,
-  },
-  {
-    alias: 'cam38',
-    name: 'The Mall Athens – Neratziotissa Station',
-    city: 'Athens',
-    lat: 38.0414,
-    lng: 23.7897,
-  },
-  {
-    alias: 'cam053',
-    name: 'I/C Metamorfosi',
-    city: 'Athens',
-    lat: 38.065,
-    lng: 23.7575,
-  },
-  {
-    alias: 'cam6',
-    name: 'Koropi Toll Station',
-    city: 'Koropi',
-    lat: 37.8969,
-    lng: 23.8753,
-  },
-  {
-    alias: 'cam88',
-    name: 'Roupaki Toll Station',
-    city: 'Elefsina',
-    lat: 38.0781,
-    lng: 23.6528,
-  },
+  { alias: 'cam128', name: 'I/C D. Plakentias – Imittos Ring Road', city: 'Athens', lat: 38.0208, lng: 23.8578 },
+  { alias: 'cam231', name: 'I/C Papagou (Imittos Ring Road)', city: 'Athens', lat: 37.9906, lng: 23.7947 },
+  { alias: 'cam38', name: 'The Mall Athens – Neratziotissa Station', city: 'Athens', lat: 38.0414, lng: 23.7897 },
+  { alias: 'cam053', name: 'I/C Metamorfosi', city: 'Athens', lat: 38.065, lng: 23.7575 },
+  { alias: 'cam6', name: 'Koropi Toll Station', city: 'Koropi', lat: 37.8969, lng: 23.8753 },
+  { alias: 'cam88', name: 'Roupaki Toll Station', city: 'Elefsina', lat: 38.0781, lng: 23.6528 },
 ];
+
+async function fetchIpcamLiveHls(alias: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://ipcamlive.com/api/v2/getstreamhlsurl?apisecret=${IPCAMLIVE_API_SECRET}&alias=${alias}`,
+      { signal: AbortSignal.timeout(10000) },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.result !== 'ok' || !data.data?.url) return null;
+    return String(data.data.url).replace(/^http:\/\//i, 'https://');
+  } catch {
+    return null;
+  }
+}
 
 async function fetchIpcamLiveSnapshot(alias: string): Promise<string | null> {
   try {
@@ -61,10 +40,8 @@ async function fetchIpcamLiveSnapshot(alias: string): Promise<string | null> {
       { signal: AbortSignal.timeout(10000) },
     );
     if (!res.ok) return null;
-
     const data = await res.json();
     if (data.result !== 'ok' || !data.data?.url) return null;
-
     return String(data.data.url).replace(/^http:\/\//i, 'https://');
   } catch {
     return null;
@@ -74,7 +51,10 @@ async function fetchIpcamLiveSnapshot(alias: string): Promise<string | null> {
 export async function fetchGreeceCameras(): Promise<CctvCamera[]> {
   const settled = await Promise.allSettled(
     ATTiki_ODOS_CAMERAS.map(async (cam) => {
-      const snapshot = await fetchIpcamLiveSnapshot(cam.alias);
+      const [hls, snapshot] = await Promise.all([
+        fetchIpcamLiveHls(cam.alias),
+        fetchIpcamLiveSnapshot(cam.alias),
+      ]);
       const fallback = `https://www.aodos.gr/wp-content/themes/aodos/assets/img/cameras/${cam.alias}-snapshot.jpg`;
 
       return {
@@ -84,6 +64,8 @@ export async function fetchGreeceCameras(): Promise<CctvCamera[]> {
         name: cam.name,
         city: cam.city,
         country: 'Greece',
+        stream_url: hls || undefined,
+        stream_type: hls ? 'hls' as const : undefined,
         feed_url: snapshot || fallback,
         external_url: 'https://www.aodos.gr/en/live-streaming/',
         source: 'Attiki Odos',

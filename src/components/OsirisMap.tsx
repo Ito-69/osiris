@@ -436,6 +436,8 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         source: p.source,
         feed_url: p.feed_url,
         external_url: p.external_url,
+        stream_url: p.stream_url,
+        stream_type: p.stream_type,
         lat: coords[1],
         lng: coords[0],
       });
@@ -732,7 +734,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
   useEffect(() => {
     if (!mapReady) return;
-    setGeo('cctv', activeLayers.cctv && data.cameras ? data.cameras.map((c: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [c.lng, c.lat] }, properties: { name: c.name, city: c.city, country: c.country, source: c.source, feed_url: c.feed_url, external_url: c.external_url } })) : []);
+    setGeo('cctv', activeLayers.cctv && data.cameras ? data.cameras.map((c: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [c.lng, c.lat] }, properties: { id: c.id, name: c.name, city: c.city, country: c.country, source: c.source, feed_url: c.feed_url, external_url: c.external_url, stream_url: c.stream_url, stream_type: c.stream_type } })) : []);
   }, [mapReady, data.cameras, activeLayers.cctv, setGeo]);
 
   useEffect(() => {

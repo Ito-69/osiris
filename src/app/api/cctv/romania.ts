@@ -41,7 +41,9 @@ const ROMANIA_CAMERAS: CctvCamera[] = [
     name: 'Eforie Sud – Black Sea',
     city: 'Eforie Sud',
     country: 'Romania',
-    external_url: 'https://g0.ipcamlive.com/player/player.php?alias=5ad96539684a9&autoplay=1',
+    stream_url: 'https://g0.ipcamlive.com/player/player.php?alias=5ad96539684a9&autoplay=1',
+    stream_type: 'iframe',
+    external_url: 'https://weather-webcam.eu/ueb-kamera-ot-eforie-sud/',
     source: 'IPCamLive',
   },
   {
@@ -88,5 +90,5 @@ const ROMANIA_CAMERAS: CctvCamera[] = [
 ];
 
 export async function fetchRomaniaCameras(): Promise<CctvCamera[]> {
-  return ROMANIA_CAMERAS.filter((cam) => cam.feed_url || cam.external_url);
+  return ROMANIA_CAMERAS.filter((cam) => cam.feed_url || cam.stream_url || cam.external_url);
 }

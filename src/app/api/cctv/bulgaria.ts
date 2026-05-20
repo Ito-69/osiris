@@ -124,6 +124,8 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     name: 'Orlov Most',
     city: 'Sofia',
     country: 'Bulgaria',
+    stream_url: 'https://rtsp.me/embed/4NSnNeAb/',
+    stream_type: 'iframe',
     external_url: 'https://rtsp.me/embed/4NSnNeAb/',
     source: 'Free-WebCamBG',
   },
@@ -292,7 +294,9 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     name: 'GKPP Makaza – Nymfea (cam 1)',
     city: 'Makaza',
     country: 'Bulgaria',
-    external_url: 'https://www.youtube.com/embed/pnr0lhrqRAc',
+    stream_url: 'https://www.youtube.com/embed/pnr0lhrqRAc?autoplay=1&mute=1',
+    stream_type: 'iframe',
+    external_url: 'https://weather-webcam.eu/ueb-kameri-ot-gkpp-makaza-nimfeya/',
     source: 'YouTube / GKPP',
   },
   {
@@ -302,7 +306,9 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     name: 'GKPP Makaza – Nymfea (cam 2)',
     city: 'Makaza',
     country: 'Bulgaria',
-    external_url: 'https://www.youtube.com/embed/YXN19ZEpIkc',
+    stream_url: 'https://www.youtube.com/embed/YXN19ZEpIkc?autoplay=1&mute=1',
+    stream_type: 'iframe',
+    external_url: 'https://weather-webcam.eu/ueb-kameri-ot-gkpp-makaza-nimfeya/',
     source: 'YouTube / GKPP',
   },
   {
@@ -406,6 +412,8 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     name: 'Port / Yacht Club',
     city: 'Burgas',
     country: 'Bulgaria',
+    stream_url: 'https://rtsp.me/embed/eDKcvpQB/',
+    stream_type: 'iframe',
     external_url: 'https://rtsp.me/embed/eDKcvpQB/',
     source: 'Free-WebCamBG',
   },
@@ -416,8 +424,10 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     name: 'City Center / Hotel Bulgaria Garden',
     city: 'Burgas',
     country: 'Bulgaria',
+    stream_url: 'https://pics.smartburgas.eu/m3u8/burgas_town_Center.m3u8',
+    stream_type: 'hls',
     external_url: 'https://www.weather-webcam.eu/cams/burgas-centar.html',
-    source: 'weather-webcam.eu',
+    source: 'Smart Burgas',
   },
 
   // ── Black Sea resorts ──
@@ -458,6 +468,8 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     name: 'Sozopol Bay',
     city: 'Sozopol',
     country: 'Bulgaria',
+    stream_url: 'https://rtsp.me/embed/EUPz4MnT/',
+    stream_type: 'iframe',
     external_url: 'https://rtsp.me/embed/EUPz4MnT/',
     source: 'Free-WebCamBG',
   },
@@ -468,11 +480,13 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     name: 'Kavarna – Ikantalaka Beach',
     city: 'Kavarna',
     country: 'Bulgaria',
+    stream_url: 'https://rtsp.me/embed/z8DzZDQN/',
+    stream_type: 'iframe',
     external_url: 'https://rtsp.me/embed/z8DzZDQN/',
     source: 'Free-WebCamBG',
   },
 ];
 
 export async function fetchBulgariaCameras(): Promise<CctvCamera[]> {
-  return BULGARIA_CAMERAS.filter((cam) => cam.feed_url || cam.external_url);
+  return BULGARIA_CAMERAS.filter((cam) => cam.feed_url || cam.stream_url || cam.external_url);
 }
