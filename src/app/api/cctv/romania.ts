@@ -1,0 +1,92 @@
+import type { CctvCamera } from './types';
+
+/** Romanian webcams — cities, Black Sea coast, Danube border. */
+const ROMANIA_CAMERAS: CctvCamera[] = [
+  {
+    id: 'ro-bucharest',
+    lat: 44.426,
+    lng: 26.102,
+    name: 'Bucharest Panorama',
+    city: 'Bucharest',
+    country: 'Romania',
+    feed_url: 'https://home-solutions.bg/cams/bukor.jpg',
+    external_url: 'https://weather-webcam.eu/cam-camera-online-romania-bucharest-1/',
+    source: 'home-solutions.bg',
+  },
+  {
+    id: 'ro-bailesti',
+    lat: 44.025,
+    lng: 23.235,
+    name: 'Băilești',
+    city: 'Băilești',
+    country: 'Romania',
+    feed_url: 'https://images-webcams.windy.com/37/1373238237/current/full/1373238237.jpg',
+    external_url: 'https://weather-webcam.eu/cam-camera-online-romania-bailesti-live/',
+    source: 'Windy Webcams',
+  },
+  {
+    id: 'ro-brasov',
+    lat: 45.657,
+    lng: 25.601,
+    name: 'Brașov',
+    city: 'Brașov',
+    country: 'Romania',
+    external_url: 'https://weather-webcam.eu/cam-camera-online-romania-brashov/',
+    source: 'weather-webcam.eu',
+  },
+  {
+    id: 'ro-eforie-sud',
+    lat: 44.058,
+    lng: 28.632,
+    name: 'Eforie Sud – Black Sea',
+    city: 'Eforie Sud',
+    country: 'Romania',
+    external_url: 'https://g0.ipcamlive.com/player/player.php?alias=5ad96539684a9&autoplay=1',
+    source: 'IPCamLive',
+  },
+  {
+    id: 'ro-giurgiu-bridge',
+    lat: 43.903,
+    lng: 25.974,
+    name: 'Giurgiu – Ruse Danube Bridge',
+    city: 'Giurgiu',
+    country: 'Romania',
+    feed_url: 'https://weather-webcam.eu/cams/gkpp-ruse-gurgevo-webcam-kamera-na-jivo.jpg',
+    external_url: 'https://weather-webcam.eu/gkpp-ruse-gurgevo-dunav-most-bulgaria-romania-kamera-na-jivo-vremeto-dunav-onlain/',
+    source: 'weather-webcam.eu',
+  },
+  {
+    id: 'ro-giurgiu-bridge-2',
+    lat: 43.902,
+    lng: 25.976,
+    name: 'Giurgiu – Danube Bridge (lane 2)',
+    city: 'Giurgiu',
+    country: 'Romania',
+    feed_url: 'https://weather-webcam.eu/cams/gkpp-ruse-gurgevo-webcam-kamera-na-jivo2.jpg',
+    source: 'weather-webcam.eu',
+  },
+  {
+    id: 'ro-oltenita-tutrakan',
+    lat: 44.093,
+    lng: 26.636,
+    name: 'Oltenița – Tutrakan Ferry',
+    city: 'Oltenița',
+    country: 'Romania',
+    feed_url: 'https://weather-webcam.eu/cams/ruse-webcam-gkpp-kam-tutrakan.jpg',
+    source: 'weather-webcam.eu',
+  },
+  {
+    id: 'ro-balea-lake',
+    lat: 45.604,
+    lng: 24.616,
+    name: 'Balea Lake – Carpathians',
+    city: 'Sibiu',
+    country: 'Romania',
+    external_url: 'https://weather-webcam.eu/balea-lake-karpati-romania-live-kamera-vremeto-ski/',
+    source: 'weather-webcam.eu',
+  },
+];
+
+export async function fetchRomaniaCameras(): Promise<CctvCamera[]> {
+  return ROMANIA_CAMERAS.filter((cam) => cam.feed_url || cam.external_url);
+}
