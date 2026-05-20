@@ -19,7 +19,7 @@ function resolvePlayback(camera: any): { mode: PlaybackMode; url: string | null 
   const streamType = camera.stream_type as string | undefined;
 
   if (streamUrl) {
-    if (streamType === 'iframe' || /youtube\.com\/embed|rtsp\.me\/embed|ipcamlive\.com\/player/i.test(streamUrl)) {
+    if (streamType === 'iframe' || /youtube\.com\/embed|youtube-nocookie\.com\/embed|rtsp\.me\/embed|ipcamlive\.com\/player|click2stream\.com|windy\.com\/webcams\/\d+\/embed/i.test(streamUrl)) {
       return { mode: 'iframe', url: streamUrl.replace(/&amp;/g, '&') };
     }
     if (streamType === 'hls' || /\.m3u8(\?|$)/i.test(streamUrl)) {
@@ -34,7 +34,7 @@ function resolvePlayback(camera: any): { mode: PlaybackMode; url: string | null 
   const external = camera.external_url as string | undefined;
   if (external) {
     const normalized = external.replace(/&amp;/g, '&');
-    if (/youtube\.com\/embed|rtsp\.me\/embed/i.test(normalized)) {
+    if (/youtube\.com\/embed|youtube-nocookie\.com\/embed|rtsp\.me\/embed|click2stream\.com|windy\.com\/webcams\/\d+\/embed/i.test(normalized)) {
       return { mode: 'iframe', url: normalized };
     }
     if (/ipcamlive\.com\/player/i.test(normalized)) {

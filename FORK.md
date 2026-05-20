@@ -19,8 +19,8 @@
 
 Нови API модули под `src/app/api/cctv/`:
 
-- **bulgaria.ts** — Sofia, Plovdiv, Varna, Burgas, курорти, GKPP (Kulata, Makaza, Kapitan Andreevo…)
-- **greece.ts** — Attiki Odos (Атина)
+- **bulgaria.ts** — Sofia, Plovdiv, Varna, Burgas, курорти, GKPP (Kulata, Makaza, Kapitan Andreevo…) + **~350 камери** от free-webcambg.com (`bulgaria-fwcbg.generated.ts`, ~170 live rtsp.me)
+- **greece.ts** — Attiki Odos (Атина) + **Солун, Кavala, Халкидики/Ситония, Ксанти, Тасос, Промахон**
 - **serbia.ts** — Belgrade, Niš, граница Gradina
 - **macedonia.ts** — Skopje, Ohrid, гранични пунктове (Neotel HLS)
 - **turkey.ts** — Edirne, Kapıkule, Makaza

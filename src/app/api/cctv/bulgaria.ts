@@ -1,17 +1,17 @@
 import type { CctvCamera } from './types';
-import { normalizeFeedUrl } from './types';
+import { BULGARIA_FWCBG_CAMERAS } from './bulgaria-fwcbg.generated';
 
 /**
- * Curated Bulgarian traffic / border webcams from public feeds.
- * Sources: free-webcambg.com, cdn.uab.org (GKPP), weather-webcam.eu, meteo.chavo.biz
+ * Curated cameras from non-free-webcambg sources (UAB/GKPP, Smart Burgas HLS, YouTube, meteo).
+ * Combined with auto-generated free-webcambg catalog (~350 cameras, ~170 live rtsp.me).
  */
-const BULGARIA_CAMERAS: CctvCamera[] = [
-  // ── Sofia traffic ──
+const BULGARIA_MANUAL: CctvCamera[] = [
+  // ── UAB / KAMEPA traffic (not on free-webcambg) ──
   {
     id: 'bg-sofia-tsarigradsko-uab',
     lat: 42.662,
     lng: 23.376,
-    name: 'Tsarigradsko Shose',
+    name: 'Tsarigradsko Shose (UAB)',
     city: 'Sofia',
     country: 'Bulgaria',
     feed_url: 'https://cdn.uab.org/images/cctv/images/cctv/cctv_103/cctv.jpg',
@@ -28,108 +28,6 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     source: 'meteo.chavo.biz',
   },
   {
-    id: 'bg-sofia-ndk',
-    lat: 42.685,
-    lng: 23.319,
-    name: 'NDK / Bulgaria Square',
-    city: 'Sofia',
-    country: 'Bulgaria',
-    feed_url: normalizeFeedUrl('pics/Sofia-46'),
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-sofia-serdika',
-    lat: 42.697,
-    lng: 23.321,
-    name: 'Metro Serdika',
-    city: 'Sofia',
-    country: 'Bulgaria',
-    feed_url: 'http://cdn1.free-webcambg.com/cams/Sofia-40',
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-sofia-vasil-levski',
-    lat: 42.696,
-    lng: 23.332,
-    name: 'Vasil Levski Square',
-    city: 'Sofia',
-    country: 'Bulgaria',
-    feed_url: 'http://cdn1.free-webcambg.com/cams/Sofia-38',
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-sofia-bulgaria-blvd',
-    lat: 42.67,
-    lng: 23.295,
-    name: 'Bulgaria Blvd',
-    city: 'Sofia',
-    country: 'Bulgaria',
-    feed_url: 'http://cdn1.free-webcambg.com/cams/Sofia-13',
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-sofia-tv-tower',
-    lat: 42.655,
-    lng: 23.344,
-    name: 'Sofia TV Tower',
-    city: 'Sofia',
-    country: 'Bulgaria',
-    feed_url: 'http://cdn1.free-webcambg.com/cams/Sofia-50',
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-sofia-ring-road',
-    lat: 42.61,
-    lng: 23.26,
-    name: 'Sofia Ring Road / Boyana',
-    city: 'Sofia',
-    country: 'Bulgaria',
-    feed_url: normalizeFeedUrl('pics/Sofia-24'),
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-sofia-lozenets',
-    lat: 42.678,
-    lng: 23.337,
-    name: 'Lozenets',
-    city: 'Sofia',
-    country: 'Bulgaria',
-    feed_url: normalizeFeedUrl('pics/Sofia-14'),
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-sofia-druzhba',
-    lat: 42.655,
-    lng: 23.395,
-    name: 'Druzhba / Iskarsko Shose',
-    city: 'Sofia',
-    country: 'Bulgaria',
-    feed_url: normalizeFeedUrl('pics/Sofia-44'),
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-sofia-manastirski',
-    lat: 42.678,
-    lng: 23.279,
-    name: 'Manastirski Livadi',
-    city: 'Sofia',
-    country: 'Bulgaria',
-    feed_url: normalizeFeedUrl('pics/Sofia-21'),
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-sofia-orlov-most',
-    lat: 42.694,
-    lng: 23.336,
-    name: 'Orlov Most',
-    city: 'Sofia',
-    country: 'Bulgaria',
-    stream_url: 'https://rtsp.me/embed/4NSnNeAb/',
-    stream_type: 'iframe',
-    external_url: 'https://rtsp.me/embed/4NSnNeAb/',
-    source: 'Free-WebCamBG',
-  },
-  {
     id: 'bg-sofia-iztok',
     lat: 42.679,
     lng: 23.364,
@@ -137,7 +35,7 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     city: 'Sofia',
     country: 'Bulgaria',
     feed_url: 'http://85.118.88.81:8000/jpg/image.jpg?resolution=1280x960',
-    source: 'Free-WebCamBG',
+    source: 'Private cam',
   },
   {
     id: 'bg-sofia-lagera',
@@ -150,19 +48,7 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     source: 'MeteoBrite',
   },
 
-  // ── Other cities ──
-  {
-    id: 'bg-plovdiv-tsarigradsko',
-    lat: 42.135,
-    lng: 24.748,
-    name: 'Tsarigradsko Shose',
-    city: 'Plovdiv',
-    country: 'Bulgaria',
-    feed_url: normalizeFeedUrl('pics/Plovdiv-02'),
-    source: 'Free-WebCamBG',
-  },
-
-  // ── Border crossings (BG–GR and others) ──
+  // ── GKPP / border (UAB + weather-webcam + YouTube) ──
   {
     id: 'bg-gkpp-kulata-1',
     lat: 41.395,
@@ -228,26 +114,6 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     source: 'weather-webcam.eu',
   },
   {
-    id: 'bg-gkpp-vrashka-1',
-    lat: 43.858,
-    lng: 22.448,
-    name: 'GKPP Vrashka Chuka',
-    city: 'Vrashka Chuka',
-    country: 'Bulgaria',
-    feed_url: 'https://home-solutions.bg/cams/chuka2.jpg',
-    source: 'home-solutions.bg',
-  },
-  {
-    id: 'bg-gkpp-vrashka-2',
-    lat: 43.857,
-    lng: 22.45,
-    name: 'GKPP Vrashka Chuka (alt)',
-    city: 'Vrashka Chuka',
-    country: 'Bulgaria',
-    feed_url: 'https://home-solutions.bg/cams/chuka1.jpg',
-    source: 'home-solutions.bg',
-  },
-  {
     id: 'bg-gkpp-ruse-3',
     lat: 43.846,
     lng: 25.978,
@@ -268,24 +134,24 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     source: 'weather-webcam.eu',
   },
   {
-    id: 'bg-gkpp-kalotina',
-    lat: 42.995,
-    lng: 22.878,
-    name: 'GKPP Kalotina – Gradina',
-    city: 'Kalotina',
+    id: 'bg-gkpp-vrashka-1',
+    lat: 43.858,
+    lng: 22.448,
+    name: 'GKPP Vrashka Chuka',
+    city: 'Vrashka Chuka',
     country: 'Bulgaria',
-    external_url: 'https://weather-webcam.eu/kalotina-online-webcam-kgpp-granichen-punkt-bulgaria-sarbia-kamera/',
-    source: 'weather-webcam.eu',
+    feed_url: 'https://home-solutions.bg/cams/chuka2.jpg',
+    source: 'home-solutions.bg',
   },
   {
-    id: 'bg-gkpp-gueshevo',
-    lat: 42.148,
-    lng: 22.535,
-    name: 'GKPP Gyueshevo – Deve Bair',
-    city: 'Gyueshevo',
+    id: 'bg-gkpp-vrashka-2',
+    lat: 43.857,
+    lng: 22.45,
+    name: 'GKPP Vrashka Chuka (alt)',
+    city: 'Vrashka Chuka',
     country: 'Bulgaria',
-    external_url: 'https://weather-webcam.eu/gueshevo-online-webcam-kgpp-granichen-punkt-bulgaria-makedonia-kamera/',
-    source: 'weather-webcam.eu',
+    feed_url: 'https://home-solutions.bg/cams/chuka1.jpg',
+    source: 'home-solutions.bg',
   },
   {
     id: 'bg-gkpp-makaza-1',
@@ -310,6 +176,26 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     stream_type: 'iframe',
     external_url: 'https://weather-webcam.eu/ueb-kameri-ot-gkpp-makaza-nimfeya/',
     source: 'YouTube / GKPP',
+  },
+  {
+    id: 'bg-gkpp-kalotina',
+    lat: 42.995,
+    lng: 22.878,
+    name: 'GKPP Kalotina – Gradina',
+    city: 'Kalotina',
+    country: 'Bulgaria',
+    external_url: 'https://weather-webcam.eu/kalotina-online-webcam-kgpp-granichen-punkt-bulgaria-sarbia-kamera/',
+    source: 'weather-webcam.eu',
+  },
+  {
+    id: 'bg-gkpp-gueshevo',
+    lat: 42.148,
+    lng: 22.535,
+    name: 'GKPP Gyueshevo – Deve Bair',
+    city: 'Gyueshevo',
+    country: 'Bulgaria',
+    external_url: 'https://weather-webcam.eu/gueshevo-online-webcam-kgpp-granichen-punkt-bulgaria-makedonia-kamera/',
+    source: 'weather-webcam.eu',
   },
   {
     id: 'bg-gkpp-kapitan-andreevo',
@@ -342,12 +228,12 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     source: 'weather-webcam.eu',
   },
 
-  // ── Varna ──
+  // ── NIMH / Smart Burgas HLS ──
   {
     id: 'bg-varna-treta-buna',
     lat: 43.214,
     lng: 27.923,
-    name: 'Sea Garden / Third Buoy Beach (NIMH)',
+    name: 'Sea Garden / Third Buoy (NIMH)',
     city: 'Varna',
     country: 'Bulgaria',
     feed_url: 'https://home-solutions.bg/cams/varna-buna.jpg',
@@ -355,98 +241,16 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     source: 'NIMH / home-solutions.bg',
   },
   {
-    id: 'bg-varna-rapongi-live',
-    lat: 43.21,
-    lng: 27.918,
-    name: 'Rapongi Beach – 3rd Buoy (live)',
-    city: 'Varna',
-    country: 'Bulgaria',
-    stream_url: 'https://rtsp.me/embed/AHniBGDH/',
-    stream_type: 'iframe',
-    feed_url: normalizeFeedUrl('pics/Varna-04'),
-    external_url: 'http://free-webcambg.com/Varna-04-webcam-live-online-camera-plaj-3-buna-kameri-na-jivo-vremeto-weather.htm',
-    source: 'Free-WebCamBG / RTSP.ME',
-  },
-  {
-    id: 'bg-varna-rapongi-2',
-    lat: 43.209,
-    lng: 27.92,
-    name: 'Third Buoy Bay – view 2 (live)',
-    city: 'Varna',
-    country: 'Bulgaria',
-    stream_url: 'https://rtsp.me/embed/rteByNRQ/',
-    stream_type: 'iframe',
-    external_url: 'http://free-webcambg.com/Varna-04-webcam-live-online-camera-plaj-3-buna-kameri-na-jivo-vremeto-weather.htm',
-    source: 'Free-WebCamBG / RTSP.ME',
-  },
-  {
-    id: 'bg-varna-briz',
-    lat: 43.218,
-    lng: 27.955,
-    name: 'Briz Quarter (live)',
-    city: 'Varna',
-    country: 'Bulgaria',
-    stream_url: 'https://rtsp.me/embed/rHzFzH9z/',
-    stream_type: 'iframe',
-    external_url: 'http://free-webcambg.com/Varna-14-webcam-live-online-camera-Akchelar-kameri-na-jivo-vremeto-weather.htm',
-    source: 'Free-WebCamBG / RTSP.ME',
-  },
-  {
-    id: 'bg-varna-akchelar',
-    lat: 43.205,
-    lng: 27.875,
-    name: 'Akchelar Villa Zone (live)',
-    city: 'Varna',
-    country: 'Bulgaria',
-    stream_url: 'https://rtsp.me/embed/EG9dKHhr/',
-    stream_type: 'iframe',
-    external_url: 'https://weather-webcam.eu/varna-akchelar-live-camera-na-jivo/',
-    source: 'Free-WebCamBG / RTSP.ME',
-  },
-  {
-    id: 'bg-varna-galata',
-    lat: 43.168,
-    lng: 27.942,
-    name: 'Galata Quarter',
-    city: 'Varna',
-    country: 'Bulgaria',
-    feed_url: normalizeFeedUrl('pics/Varna-06'),
-    external_url: 'http://free-webcambg.com/Varna-06-webcam-live-online-camera-Galata-kameri-na-jivo-vremeto-weather.htm',
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-varna-south-bay',
-    lat: 43.183,
-    lng: 27.901,
-    name: 'South Bay Beach (Grand Hotel)',
-    city: 'Varna',
-    country: 'Bulgaria',
-    feed_url: 'http://cdn1.free-webcambg.com/cams/Varna-09',
-    external_url: 'http://free-webcambg.com/Varna-09-webcam-live-online-camera-South-Bay-beach-kameri-na-jivo-vremeto-weather.html',
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-varna-rapongi',
-    lat: 43.21,
-    lng: 27.917,
-    name: 'Rapongi / Third Buoy (snapshot)',
-    city: 'Varna',
-    country: 'Bulgaria',
-    feed_url: normalizeFeedUrl('pics/Varna-04w'),
-    external_url: 'http://free-webcambg.com/Varna-04-webcam-live-online-camera-plaj-3-buna-kameri-na-jivo-vremeto-weather.htm',
-    source: 'Free-WebCamBG',
-  },
-
-  // ── Burgas ──
-  {
-    id: 'bg-burgas-north-beach',
-    lat: 42.51,
-    lng: 27.474,
-    name: 'North Beach / Windsurf',
+    id: 'bg-burgas-center',
+    lat: 42.497,
+    lng: 27.47,
+    name: 'Burgas Center (Smart Burgas HLS)',
     city: 'Burgas',
     country: 'Bulgaria',
-    feed_url: 'http://5.104.177.125:8080/?action=snapshot',
-    source: 'Free-WebCamBG',
+    stream_url: 'https://pics.smartburgas.eu/m3u8/burgas_town_Center.m3u8',
+    stream_type: 'hls',
+    external_url: 'https://www.weather-webcam.eu/cams/burgas-centar.html',
+    source: 'Smart Burgas',
   },
   {
     id: 'bg-burgas-sarafovo',
@@ -459,87 +263,32 @@ const BULGARIA_CAMERAS: CctvCamera[] = [
     source: 'weather-webcam.eu',
   },
   {
-    id: 'bg-burgas-yacht-club',
-    lat: 42.49,
+    id: 'bg-burgas-north-beach',
+    lat: 42.51,
     lng: 27.474,
-    name: 'Port / Yacht Club',
+    name: 'North Beach / Windsurf',
     city: 'Burgas',
     country: 'Bulgaria',
-    stream_url: 'https://rtsp.me/embed/eDKcvpQB/',
-    stream_type: 'iframe',
-    external_url: 'https://rtsp.me/embed/eDKcvpQB/',
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-burgas-center',
-    lat: 42.497,
-    lng: 27.47,
-    name: 'City Center / Hotel Bulgaria Garden',
-    city: 'Burgas',
-    country: 'Bulgaria',
-    stream_url: 'https://pics.smartburgas.eu/m3u8/burgas_town_Center.m3u8',
-    stream_type: 'hls',
-    external_url: 'https://www.weather-webcam.eu/cams/burgas-centar.html',
-    source: 'Smart Burgas',
-  },
-
-  // ── Black Sea resorts ──
-  {
-    id: 'bg-golden-sands',
-    lat: 43.28,
-    lng: 28.04,
-    name: 'Golden Sands Center',
-    city: 'Golden Sands',
-    country: 'Bulgaria',
-    feed_url: normalizeFeedUrl('pics/Golden-Sands-05'),
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-nessebar-zornitsa',
-    lat: 42.66,
-    lng: 27.736,
-    name: 'Nessebar – Zornitsa Arch',
-    city: 'Nessebar',
-    country: 'Bulgaria',
-    feed_url: normalizeFeedUrl('pics/Nessebar-01'),
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-sunny-beach-mesembria',
-    lat: 42.695,
-    lng: 27.71,
-    name: 'Sunny Beach – Mesembria Palace',
-    city: 'Sunny Beach',
-    country: 'Bulgaria',
-    feed_url: normalizeFeedUrl('pics/Sunny-Beach-14'),
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-sozopol-bay',
-    lat: 42.417,
-    lng: 27.695,
-    name: 'Sozopol Bay',
-    city: 'Sozopol',
-    country: 'Bulgaria',
-    stream_url: 'https://rtsp.me/embed/EUPz4MnT/',
-    stream_type: 'iframe',
-    external_url: 'https://rtsp.me/embed/EUPz4MnT/',
-    source: 'Free-WebCamBG',
-  },
-  {
-    id: 'bg-kavarna-ikantalaka',
-    lat: 43.436,
-    lng: 28.34,
-    name: 'Kavarna – Ikantalaka Beach',
-    city: 'Kavarna',
-    country: 'Bulgaria',
-    stream_url: 'https://rtsp.me/embed/z8DzZDQN/',
-    stream_type: 'iframe',
-    external_url: 'https://rtsp.me/embed/z8DzZDQN/',
-    source: 'Free-WebCamBG',
+    feed_url: 'http://5.104.177.125:8080/?action=snapshot',
+    source: 'Private cam',
   },
 ];
 
+function cameraKey(cam: CctvCamera): string {
+  return (cam.stream_url || cam.feed_url || cam.external_url || cam.id).split('?')[0];
+}
+
 export async function fetchBulgariaCameras(): Promise<CctvCamera[]> {
-  return BULGARIA_CAMERAS.filter((cam) => cam.feed_url || cam.stream_url || cam.external_url);
+  const seen = new Set<string>();
+  const merged: CctvCamera[] = [];
+
+  for (const cam of [...BULGARIA_MANUAL, ...BULGARIA_FWCBG_CAMERAS]) {
+    if (!cam.feed_url && !cam.stream_url && !cam.external_url) continue;
+    const key = cameraKey(cam);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(cam);
+  }
+
+  return merged;
 }
