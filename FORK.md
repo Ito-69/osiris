@@ -112,16 +112,29 @@ Two separate bugs made Balkans news unusable until commit `0829c40`:
 
 ## Local Docker deploy
 
-The fork runs locally from a wrapper directory (not part of the git repo):
+### Option A — pull pre-built image (recommended for friends)
+
+No git clone, no build. Only Docker required.
 
 ```bash
-git clone git@github.com:Ito-69/osiris.git repo
-# compose.yaml in the parent folder — build context: ./repo
-docker compose up -d --build
+curl -fsSL -o compose.yaml https://raw.githubusercontent.com/Ito-69/osiris/master/compose.yaml
+docker compose pull
+docker compose up -d
 # → http://localhost:3000
 ```
 
-Example layout: `osiris/compose.yaml` + `osiris/repo/` (clone of this fork).
+Image: `ghcr.io/ito-69/osiris:latest` (published automatically via GitHub Actions on push to `master`).
+
+### Option B — build from source (developers)
+
+```bash
+git clone git@github.com:Ito-69/osiris.git
+cd osiris
+docker compose -f compose.build.yaml up -d --build
+# → http://localhost:3000
+```
+
+Legacy wrapper layout (clone into `repo/` subfolder + parent `compose.yaml`) still works for local dev.
 
 ## Syncing with upstream
 

@@ -1,0 +1,18 @@
+# OSIRIS — pre-built image (no local build required)
+# Usage:
+#   docker compose pull
+#   docker compose up -d
+# → http://localhost:3000
+#
+# Image is built from https://github.com/Ito-69/osiris (master)
+# Fork adds Balkans + Italy CCTV on top of upstream OSIRIS.
+
+services:
+  osiris:
+    container_name: osiris
+    image: ghcr.io/ito-69/osiris:latest
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped

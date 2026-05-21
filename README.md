@@ -18,6 +18,20 @@
 
 > **Fork ([Ito-69/osiris](https://github.com/Ito-69/osiris)):** Extends upstream with **Balkans + Italy CCTV** (~130 cameras), **Windy/meteoblue feeds**, health filtering, and **in-app live streaming** (HLS / iframe / JPG snapshots). Differences from [simplifaisoul/osiris](https://github.com/simplifaisoul/osiris) → **[FORK.md](FORK.md)**.
 
+### Docker (pre-built image — no clone/build)
+
+Requires [Docker](https://docs.docker.com/get-docker/) with Compose v2.
+
+```bash
+curl -fsSL -o compose.yaml https://raw.githubusercontent.com/Ito-69/osiris/master/compose.yaml
+docker compose pull
+docker compose up -d
+```
+
+Open [http://localhost:3000](http://localhost:3000). Image: `ghcr.io/ito-69/osiris:latest` (built automatically on each push to `master`).
+
+To build from source instead: clone this repo and run `docker compose -f compose.build.yaml up -d --build` (see [FORK.md](FORK.md)).
+
 ---
 
 ## Overview

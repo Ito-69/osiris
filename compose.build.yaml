@@ -1,0 +1,15 @@
+# OSIRIS — build from source (for developers)
+# Usage from repo root:
+#   docker compose -f compose.build.yaml up -d --build
+
+services:
+  osiris:
+    container_name: osiris
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
