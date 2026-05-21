@@ -93,7 +93,17 @@ Utility scripts:
 
 Shared logic: `src/lib/bulgaria-sources.ts`.
 
-News UX improvements: deduplicated headlines, region-aware sorting in `IntelFeed` / `LiveAlerts`.
+#### SIGINT Feed panel & news-on-map fixes
+
+Two separate bugs made Balkans news unusable until commit `0829c40`:
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| **SIGINT FEED panel not clickable** | Parent layout uses `pointer-events-none`; `IntelFeed` did not re-enable clicks, so taps passed through to the map underneath | Added `pointer-events-auto` to `IntelFeed`; article rows open the source link in a new tab |
+| **RSS news invisible on map** | `/api/news` articles were never rendered as map markers — only YouTube **Live News Feeds** (pink dots) appeared | New layer **SIGINT News (RSS)** — gold markers on the map (`news_intel`, on by default) |
+| **LIVE ALERTS → NEWS filter empty** | `LiveAlerts` read `data.articles` with `lat`/`lng`, but the API returns `data.news` with `coords[]` and `link` | Aligned field names; severity derived from `risk_score` |
+
+**How to use:** toggle **SIGINT News (RSS)** in the layer panel for gold dots on the map; click a dot for popup + **OPEN ARTICLE**. Use the left **SIGINT FEED** panel to browse headlines — each row is clickable.
 
 ### 6. Map
 
