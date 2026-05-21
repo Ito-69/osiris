@@ -76,10 +76,6 @@ function findCoords(text: string): [number, number] | null {
   return null;
 }
 
-// generateAssessment() REMOVED — was fabricating fake probabilistic threat
-// percentages using Math.random(). See Issue #116.
-// The risk_score field (from scoreRisk()) is deterministic and retained.
-
 // Simple XML parsing for RSS (no external dependency needed in serverless)
 function parseRSSItems(xml: string): any[] {
   const items: any[] = [];
@@ -105,7 +101,6 @@ function parseRSSItems(xml: string): any[] {
 
 export async function GET() {
   try {
-    // Fetch all feeds in parallel
     const feedPromises = Object.entries(FEEDS).map(async ([source, url]) => {
       try {
         const res = await fetch(url, {
@@ -130,12 +125,10 @@ export async function GET() {
       }
     }
 
-    // Score, classify, and sort
     const newsItems = allArticles.map(article => {
       const riskScore = scoreRisk(article.title, article.description || '');
       const keywordCoords = findCoords(article.title + ' ' + (article.description || ''));
-      const coords = keywordCoords
-        ?? (BG_NEWS_SOURCES.has(article.source) ? SOFIA_COORDS : null);
+      const coords = keywordCoords ?? (BG_NEWS_SOURCES.has(article.source) ? SOFIA_COORDS : null);
 
       return {
         title: article.title,
@@ -149,7 +142,6 @@ export async function GET() {
       };
     });
 
-    // Sort by risk score descending
     newsItems.sort((a, b) => b.risk_score - a.risk_score);
 
     return NextResponse.json({

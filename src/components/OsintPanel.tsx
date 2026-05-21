@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Radar, Globe, Shield, FileText, Radio,
   ChevronDown, ChevronUp, Loader2, AlertTriangle, Server,
   Wifi, Lock, MapPin, Bug, Code, Layers, Network, Fingerprint,
-  CheckCircle, XCircle, Clock, ExternalLink,
+  CheckCircle, XCircle, Clock, ExternalLink, Crosshair,
+  Maximize2, Minimize2
 } from 'lucide-react';
 
 const TABS = [
@@ -21,12 +22,14 @@ const TABS = [
   { id: 'ssl', label: 'SSL/TLS', icon: Shield, placeholder: 'Domain name', color: '#76FF03' },
   { id: 'subdomains', label: 'SUBDOMAINS', icon: Layers, placeholder: 'Domain to enumerate', color: '#00BCD4' },
   { id: 'tech', label: 'TECH DETECT', icon: Fingerprint, placeholder: 'URL to fingerprint', color: '#9C27B0' },
+  { id: 'sweep', label: 'IP SWEEP', icon: Crosshair, placeholder: 'Enter IP address (e.g. 8.8.8.8)', color: '#FF3D3D' },
 ];
 
-interface OsintPanelProps { isOpen?: boolean; onClose?: () => void; isMobile?: boolean; }
+interface OsintPanelProps { isOpen?: boolean; onClose?: () => void; isMobile?: boolean; onSweepVisualize?: (data: any) => void; }
 
-function OsintPanelInner({ isMobile }: OsintPanelProps) {
+function OsintPanelInner({ isMobile, onSweepVisualize }: OsintPanelProps) {
   const [activeTab, setActiveTab] = useState('scanner');
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -34,10 +37,61 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
   const [scanType, setScanType] = useState('quick');
   const [expanded, setExpanded] = useState(true);
   const [history, setHistory] = useState<{tab:string;query:string;time:string}[]>([]);
+  const [sweepResult, setSweepResult] = useState<any>(null);
+  const [sweepProgress, setSweepProgress] = useState<{ current: number; total: number } | null>(null);
+  const [sweepCidr, setSweepCidr] = useState(24);
+  const [cveCache, setCveCache] = useState<Record<string, any>>({});
+  const [expandedDevice, setExpandedDevice] = useState<string | null>(null);
+
+  // Fetch CVE details when a device is expanded in full-screen mode
+  const fetchCveDetails = useCallback(async (cveIds: string[]) => {
+    const missing = cveIds.filter(id => !cveCache[id]);
+    if (missing.length === 0) return;
+    // Mark as loading
+    setCveCache(prev => {
+      const next = { ...prev };
+      for (const id of missing) next[id] = { loading: true };
+      return next;
+    });
+    // Fetch in parallel
+    const results = await Promise.allSettled(
+      missing.map(id => fetch(`/api/osint/cve?cve=${encodeURIComponent(id)}`).then(r => r.json()).then(data => ({ id, data })))
+    );
+    setCveCache(prev => {
+      const next = { ...prev };
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          next[r.value.id] = r.value.data;
+        }
+      }
+      return next;
+    });
+  }, [cveCache]);
 
   const runLookup = useCallback(async () => {
     if (!query.trim() || loading) return;
     setLoading(true); setError(''); setResults(null);
+
+    // IP Sweep — separate flow
+    if (activeTab === 'sweep') {
+      setSweepResult(null);
+      setSweepProgress({ current: 0, total: Math.pow(2, 32 - sweepCidr) });
+      try {
+        const res = await fetch(`/api/osint/sweep?ip=${encodeURIComponent(query)}&cidr=${sweepCidr}`);
+        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `Sweep failed (${res.status})`); }
+        const data = await res.json();
+        setSweepResult(data);
+        setSweepProgress(null);
+        setHistory(prev => [{ tab: 'sweep', query, time: new Date().toLocaleTimeString() }, ...prev.slice(0, 9)]);
+      } catch (err: any) {
+        setError(err.message);
+        setSweepProgress(null);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       let url = '';
       switch (activeTab) {
@@ -63,7 +117,7 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
       }
     } catch { setError('Network error'); }
     finally { setLoading(false); }
-  }, [query, activeTab, scanType, loading]);
+  }, [query, activeTab, scanType, loading, sweepCidr]);
 
   const currentTab = TABS.find(t => t.id === activeTab);
 
@@ -312,37 +366,72 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
   const renderContent = () => (
     <div className="flex flex-col gap-2.5">
       {/* Tool Grid */}
-      <div className="grid grid-cols-4 gap-1">
-        {TABS.map(tab => (
+      <div className="flex flex-col gap-1">
+        {/* Sweep - Main Action */}
+        {TABS.filter(t => t.id === 'sweep').map(tab => (
           <button key={tab.id} onClick={() => { setActiveTab(tab.id); setQuery(''); setResults(null); setError(''); }}
-            className={`flex flex-col items-center gap-1 px-1.5 py-2 rounded-lg text-[9px] font-mono tracking-wider transition-all border ${activeTab === tab.id ? 'border-opacity-40 bg-opacity-15' : 'border-transparent hover:bg-[var(--hover-accent)]'}`}
-            style={{ borderColor: activeTab === tab.id ? tab.color : 'transparent', backgroundColor: activeTab === tab.id ? `${tab.color}15` : undefined, color: activeTab === tab.id ? tab.color : 'var(--text-muted)' }}>
-            <tab.icon className="w-3.5 h-3.5" />
-            <span className="leading-none">{tab.label}</span>
+            className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg text-[12px] font-mono tracking-widest font-bold transition-all border ${activeTab === tab.id ? 'border-opacity-60 bg-opacity-20' : 'border-[var(--border-secondary)] hover:bg-[var(--hover-accent)]'}`}
+            style={{ 
+              borderColor: activeTab === tab.id ? tab.color : 'rgba(255,61,61,0.3)', 
+              backgroundColor: activeTab === tab.id ? `${tab.color}20` : 'rgba(255,61,61,0.05)', 
+              color: activeTab === tab.id ? tab.color : tab.color,
+              boxShadow: activeTab === tab.id ? `0 0 15px ${tab.color}30` : 'none'
+            }}>
+            <tab.icon className="w-5 h-5" />
+            <span>GLOBAL {tab.label}</span>
           </button>
         ))}
+        {/* Other Tools */}
+        <div className="grid grid-cols-5 gap-1 mt-1">
+          {TABS.filter(t => t.id !== 'sweep').map(tab => (
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setQuery(''); setResults(null); setError(''); }}
+              className={`flex flex-col items-center gap-1 px-1 py-2 rounded-lg text-[8px] font-mono tracking-wider transition-all border ${activeTab === tab.id ? 'border-opacity-40 bg-opacity-15' : 'border-transparent hover:bg-[var(--hover-accent)]'}`}
+              style={{ borderColor: activeTab === tab.id ? tab.color : 'transparent', backgroundColor: activeTab === tab.id ? `${tab.color}15` : undefined, color: activeTab === tab.id ? tab.color : 'var(--text-muted)' }}>
+              <tab.icon className="w-3.5 h-3.5" />
+              <span className="leading-none text-center truncate w-full">{tab.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Search Input */}
-      <div className="flex gap-1.5">
-        <div className="flex-1 relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
-          <input type="text" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && runLookup()}
-            placeholder={currentTab?.placeholder}
-            className="w-full bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg pl-8 pr-3 py-2.5 text-[11px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none transition-colors"
-            style={{ borderColor: query ? `${currentTab?.color}40` : undefined }} />
+      {/* Input Area */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex gap-1.5">
+          <div className="flex-1 relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
+            <input type="text" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && runLookup()}
+              placeholder={currentTab?.placeholder}
+              className="w-full bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg pl-8 pr-3 py-2.5 text-[11px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none transition-colors"
+              style={{ borderColor: query ? `${currentTab?.color}40` : undefined }} />
+          </div>
+          <button onClick={runLookup} disabled={loading || !query.trim()}
+            className="px-4 py-2 rounded-lg text-[10px] font-mono font-bold tracking-wider disabled:opacity-30 transition-all flex items-center justify-center min-w-[70px]"
+            style={{ backgroundColor: `${currentTab?.color}20`, border: `1px solid ${currentTab?.color}40`, color: currentTab?.color }}>
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'SCAN'}
+          </button>
         </div>
+        
+        {/* Secondary Controls */}
         {activeTab === 'scanner' && (
           <select value={scanType} onChange={e => setScanType(e.target.value)}
-            className="bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg px-2 text-[10px] font-mono text-[var(--text-muted)] outline-none">
-            <option value="quick">QUICK</option><option value="deep">DEEP</option><option value="ports">TOP 1000</option>
+            className="bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg px-2 py-1.5 text-[10px] font-mono text-[var(--text-muted)] outline-none w-full">
+            <option value="quick">QUICK SCAN</option><option value="deep">DEEP SCAN</option><option value="ports">TOP 1000 PORTS</option>
           </select>
         )}
-        <button onClick={runLookup} disabled={loading || !query.trim()}
-          className="px-4 py-2 rounded-lg text-[10px] font-mono font-bold tracking-wider disabled:opacity-30 transition-all"
-          style={{ backgroundColor: `${currentTab?.color}20`, border: `1px solid ${currentTab?.color}40`, color: currentTab?.color }}>
-          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'SCAN'}
-        </button>
+        {activeTab === 'sweep' && (
+          <div className="flex items-center justify-between bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg p-1">
+            <span className="text-[9px] font-mono text-[var(--text-muted)] pl-2">SUBNET MASK:</span>
+            <div className="flex items-center gap-0.5">
+              {[24, 25, 26, 27, 28].map(c => (
+                <button key={c} onClick={() => setSweepCidr(c)}
+                  className={`px-2 py-1 text-[10px] font-mono rounded transition-all ${
+                    sweepCidr === c ? 'bg-[#FF3D3D]/20 text-[#FF3D3D]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
+                  }`}
+                >/{c}</button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -351,7 +440,229 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
         </div>
       )}
 
-      {results && (
+      {/* Sweep Progress */}
+      {sweepProgress && loading && (
+        <div className="p-3 rounded-lg border border-[#FF3D3D]/30 bg-[#FF3D3D]/5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-mono tracking-wider text-[#FF3D3D]">SWEEPING SUBNET...</span>
+            <span className="text-[10px] font-mono text-[#E8E6E0]">{sweepProgress.total} hosts</span>
+          </div>
+          <div className="w-full h-1.5 bg-[#1A1A18] rounded-full overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: '100%', background: 'linear-gradient(90deg, #FF3D3D, #FF6B00, #FFD700)', animation: 'sweep-pulse 1.5s ease-in-out infinite' }} />
+          </div>
+        </div>
+      )}
+
+      {/* Sweep Results */}
+      {sweepResult && !loading && (
+        <div className="bg-[var(--bg-primary)]/40 border border-[var(--border-primary)] rounded-lg overflow-hidden max-h-[55vh] overflow-y-auto styled-scrollbar">
+          {/* Summary */}
+          <div className="p-3 border-b border-[#2A2A28]">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-[11px] font-mono tracking-wider text-[#E8E6E0]">{sweepResult.subnet}</div>
+                <div className="text-[9px] font-mono text-[#5C5A54]">{sweepResult.center.city}, {sweepResult.center.country} · {sweepResult.center.isp}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[18px] font-mono font-bold text-[#FF3D3D]">{sweepResult.summary.total_responsive}</div>
+                <div className="text-[8px] font-mono text-[#5C5A54] tracking-wider">DEVICES FOUND</div>
+              </div>
+            </div>
+            {/* Breakdown Bar */}
+            <div className="flex h-2 rounded-full overflow-hidden bg-[#1A1A18] mb-2">
+              {Object.entries(sweepResult.summary.device_breakdown).map(([type, count]: [string, any]) => {
+                const device = sweepResult.devices.find((d: any) => d.device_type === type);
+                return <div key={type} style={{ width: `${(count / sweepResult.summary.total_responsive) * 100}%`, backgroundColor: device?.device_color || '#666' }} title={`${type}: ${count}`} />;
+              })}
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {Object.entries(sweepResult.summary.device_breakdown).map(([type, count]: [string, any]) => {
+                const device = sweepResult.devices.find((d: any) => d.device_type === type);
+                return (
+                  <div key={type} className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: device?.device_color || '#666' }} />
+                    <span className="text-[9px] font-mono text-[#8A8880]">{type}</span>
+                    <span className="text-[9px] font-mono text-[#E8E6E0] font-bold">{String(count)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          {/* Visualize Button */}
+          <div className="p-3 border-b border-[#2A2A28]">
+            <button onClick={() => onSweepVisualize?.(sweepResult)}
+              className="w-full py-2.5 rounded-lg font-mono text-[11px] tracking-wider font-bold transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+              style={{ background: 'linear-gradient(135deg, rgba(255,61,61,0.2), rgba(255,107,0,0.2))', border: '1px solid rgba(255,61,61,0.5)', color: '#FF3D3D', textShadow: '0 0 10px rgba(255,61,61,0.5)' }}
+            >
+              <Globe className="w-4 h-4" /> VISUALIZE ON GLOBE
+            </button>
+          </div>
+          {/* Device List */}
+          <div className={isFullScreen ? "flex flex-col gap-3 p-4" : "divide-y divide-[#2A2A28]"}>
+            {sweepResult.devices.map((device: any) => {
+              const isExpanded = expandedDevice === device.ip;
+              return (
+              <div key={device.ip} className={isFullScreen
+                ? "bg-[#0D0D0C] border border-[#2A2A28] rounded-lg overflow-hidden hover:border-[#3A3A38] transition-colors"
+                : "px-3 py-2.5 hover:bg-[rgba(255,255,255,0.02)] transition-colors"
+              }>
+                {/* Device Header */}
+                <div
+                  className={isFullScreen
+                    ? "flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-[#151514] transition-colors"
+                    : "flex items-center justify-between mb-1"
+                  }
+                  onClick={() => {
+                    if (!isFullScreen) return;
+                    const next = isExpanded ? null : device.ip;
+                    setExpandedDevice(next);
+                    if (next && device.vulns.length > 0) fetchCveDetails(device.vulns);
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: device.device_color }} />
+                    <span className={isFullScreen ? "text-[14px] font-mono font-bold text-[#E8E6E0]" : "text-[11px] font-mono text-[#E8E6E0]"}>{device.ip}</span>
+                    {device.hostnames.length > 0 && (
+                      <span className={`${isFullScreen ? "text-[11px]" : "text-[9px]"} font-mono text-[#5C5A54]`}>{device.hostnames[0]}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {device.vulns.length > 0 && (
+                      <span className={`${isFullScreen ? "text-[10px]" : "text-[8px]"} font-mono px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/30`}>
+                        {device.vulns.length} CVEs
+                      </span>
+                    )}
+                    <span className={`${isFullScreen ? "text-[10px]" : "text-[8px]"} font-mono px-1.5 py-0.5 rounded`} style={{ backgroundColor: device.device_color + '20', color: device.device_color, border: `1px solid ${device.device_color}40` }}>{device.device_type}</span>
+                    {isFullScreen && (
+                      <ChevronDown className={`w-4 h-4 text-[#5C5A54] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    )}
+                  </div>
+                </div>
+
+                {/* Compact info (sidebar mode) */}
+                {!isFullScreen && (
+                  <>
+                    <div className="flex items-center gap-2 text-[9px] font-mono text-[#5C5A54]">
+                      <span>Ports: {device.ports.slice(0, 8).join(', ')}{device.ports.length > 8 ? ` +${device.ports.length - 8}` : ''}</span>
+                      {device.vulns.length > 0 && (
+                        <div className="group relative flex items-center gap-1 cursor-help">
+                          <span className="text-[#FF3D3D] flex items-center gap-1">
+                            <AlertTriangle className="w-2.5 h-2.5" /> {device.vulns.length} CVEs
+                          </span>
+                          <div className="absolute bottom-full left-0 mb-1 hidden group-hover:block z-50 p-2 bg-[#1A1A18] border border-[#FF3D3D50] rounded-md shadow-xl min-w-[140px] max-w-[220px] max-h-[150px] overflow-y-auto styled-scrollbar">
+                            <div className="text-[8px] font-mono text-[#FF3D3D] mb-1 tracking-wider uppercase border-b border-[#FF3D3D30] pb-1">Identified Vulnerabilities</div>
+                            <div className="flex flex-col gap-0.5">
+                              {device.vulns.map((cve: string) => (
+                                <a key={cve} href={`https://nvd.nist.gov/vuln/detail/${cve}`} target="_blank" rel="noreferrer" className="text-[9px] font-mono text-[#E8E6E0] hover:text-[#FF3D3D] transition-colors truncate">
+                                  {cve}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {device.hostnames.length > 0 && <div className="text-[9px] font-mono text-[#8A8880] mt-0.5 truncate">{device.hostnames[0]}</div>}
+                  </>
+                )}
+
+                {/* Full-Screen Expanded Detail */}
+                {isFullScreen && isExpanded && (
+                  <div className="border-t border-[#2A2A28]">
+                    {/* Ports + Hostnames Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[#2A2A28]">
+                      <div className="bg-[#0D0D0C] p-4">
+                        <div className="text-[10px] font-mono text-[#5C5A54] tracking-widest uppercase mb-2">Open Ports</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {device.ports.map((port: number) => (
+                            <span key={port} className="px-2 py-1 bg-[#1A1A18] border border-[#2A2A28] rounded text-[11px] font-mono text-[var(--cyan-primary)]">{port}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="bg-[#0D0D0C] p-4">
+                        <div className="text-[10px] font-mono text-[#5C5A54] tracking-widest uppercase mb-2">Hostnames</div>
+                        {device.hostnames.length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            {device.hostnames.map((h: string) => (
+                              <span key={h} className="text-[11px] font-mono text-[#E8E6E0]">{h}</span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-[11px] font-mono text-[#3A3A38]">No reverse DNS</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* CVE Intelligence */}
+                    {device.vulns.length > 0 && (
+                      <div className="p-4 border-t border-[#2A2A28]">
+                        <div className="text-[10px] font-mono text-[#5C5A54] tracking-widest uppercase mb-3">Vulnerabilities ({device.vulns.length})</div>
+                        <div className="flex flex-col gap-2">
+                          {device.vulns.map((cveId: string) => {
+                            const info = cveCache[cveId];
+                            const isLoading = !info || info.loading;
+                            const severityColor = !info?.severity ? '#5C5A54'
+                              : info.severity === 'CRITICAL' ? '#FF3D3D'
+                              : info.severity === 'HIGH' ? '#FF6B00'
+                              : info.severity === 'MEDIUM' ? '#FFD700'
+                              : '#76FF03';
+                            return (
+                              <div key={cveId} className="bg-[#111] border border-[#2A2A28] rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[12px] font-mono font-bold text-[#E8E6E0]">{cveId}</span>
+                                    {info?.cvss != null && (
+                                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ backgroundColor: severityColor + '15', color: severityColor, border: `1px solid ${severityColor}40` }}>CVSS {info.cvss}</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {info?.severity && (
+                                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded" style={{ backgroundColor: severityColor + '15', color: severityColor, border: `1px solid ${severityColor}40` }}>{info.severity}</span>
+                                    )}
+                                    <a href={`https://nvd.nist.gov/vuln/detail/${cveId}`} target="_blank" rel="noreferrer" className="text-[#5C5A54] hover:text-[#E8E6E0] transition-colors">
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                  </div>
+                                </div>
+                                {isLoading ? (
+                                  <div className="flex items-center gap-2 py-1">
+                                    <Loader2 className="w-3 h-3 animate-spin text-[#5C5A54]" />
+                                    <span className="text-[10px] font-mono text-[#5C5A54]">Fetching vulnerability intelligence...</span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <p className="text-[11px] font-mono text-[#8A8880] leading-relaxed">{info.description}</p>
+                                    {info.cwe && <div className="text-[10px] font-mono text-[#5C5A54] mt-2">Weakness: {info.cwe}</div>}
+                                    {info.affected && info.affected.length > 0 && (
+                                      <div className="mt-2 flex flex-wrap gap-1.5">
+                                        {info.affected.map((a: any, i: number) => (
+                                          <span key={i} className="text-[9px] font-mono px-1.5 py-0.5 bg-[#1A1A18] border border-[#2A2A28] rounded text-[#8A8880]">
+                                            {a.vendor}/{a.product}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+            })}
+          </div>
+          <div className="px-3 py-2 border-t border-[#2A2A28]">
+            <div className="text-[8px] font-mono text-[#5C5A54] tracking-wider">SWEPT {sweepResult.summary.total_hosts} HOSTS IN {(sweepResult.sweep_time_ms / 1000).toFixed(1)}s · ASN {sweepResult.center.asn}</div>
+          </div>
+        </div>
+      )}
+
+      {results && !(sweepResult && !loading) && (
         <div className="bg-[var(--bg-primary)]/40 border border-[var(--border-primary)] rounded-lg p-3 max-h-[50vh] overflow-y-auto styled-scrollbar">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[9px] font-mono tracking-widest" style={{ color: currentTab?.color }}>{currentTab?.label} RESULTS</span>
@@ -381,19 +692,47 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
 
   if (isMobile) return renderContent();
 
+  if (isFullScreen) {
+    return (
+      <div className="fixed inset-4 z-[999] glass-panel bg-[#0a0a09]/95 backdrop-blur-2xl border border-[var(--cyan-primary)]/40 rounded-xl flex flex-col overflow-hidden shadow-2xl shadow-[var(--cyan-primary)]/20">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-secondary)] bg-[#111]">
+          <div className="flex items-center gap-3">
+            <Radar className="w-5 h-5 text-[var(--cyan-primary)]" />
+            <span className="hud-text text-[16px] text-[var(--text-primary)]">OSIRIS RECON TOOLKIT</span>
+            <span className="px-2 py-1 rounded bg-[var(--cyan-primary)]/10 text-[var(--cyan-primary)] font-mono text-[10px] tracking-widest border border-[var(--cyan-primary)]/30">FULL SCREEN MODE</span>
+          </div>
+          <button onClick={() => setIsFullScreen(false)} className="p-2 hover:bg-white/5 rounded transition-colors text-[var(--text-muted)] hover:text-white">
+            <Minimize2 className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6 styled-scrollbar">
+          {/* We wrap renderContent in a container that forces wider layouts if we want to target it with CSS */}
+          <div className="max-w-[1400px] mx-auto w-full full-screen-mode-content">
+             {renderContent()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.6 }} className="glass-panel flex flex-col overflow-hidden pointer-events-auto">
-      <button onClick={() => setExpanded(!expanded)} className="flex items-center justify-between px-4 py-3 hover:bg-[var(--hover-accent)] transition-colors">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-transparent hover:bg-[var(--hover-accent)] transition-colors">
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 flex-1">
           <Radar className="w-4 h-4 text-[var(--cyan-primary)]" />
           <span className="hud-text text-[12px] text-[var(--text-primary)]">RECON TOOLKIT</span>
           <span className="text-[9px] font-mono text-[var(--text-muted)]">{TABS.length} TOOLS</span>
-        </div>
-        <div className="flex items-center gap-2">
+        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setIsFullScreen(true)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" title="Full Screen">
+             <Maximize2 className="w-3.5 h-3.5" />
+          </button>
           <div className="w-1.5 h-1.5 rounded-full bg-[var(--cyan-primary)] animate-osiris-pulse" />
-          {expanded ? <ChevronUp className="w-3.5 h-3.5 text-[var(--text-muted)]" /> : <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
+          <button onClick={() => setExpanded(!expanded)}>
+            {expanded ? <ChevronUp className="w-3.5 h-3.5 text-[var(--text-muted)]" /> : <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
+          </button>
         </div>
-      </button>
+      </div>
       <AnimatePresence>
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden px-3 pb-3">

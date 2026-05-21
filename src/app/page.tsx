@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, BarChart3, Newspaper, Search, Share2, Map as MapIcon, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Building2, RadioTower } from 'lucide-react';
+import { Layers, BarChart3, Newspaper, Search, Share2, Map as MapIcon, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Building2, RadioTower, Activity } from 'lucide-react';
 import IntelFeed from '@/components/IntelFeed';
 import MarketsPanel from '@/components/MarketsPanel';
 import SearchBar from '@/components/SearchBar';
@@ -74,6 +74,7 @@ export default function Dashboard() {
   const [mobilePanel, setMobilePanel] = useState<'layers'|'markets'|'intel'|'search'|'recon'|null>(null);
   const [mapProjection, setMapProjection] = useState<'globe'|'mercator'>('globe');
   const [mapStyle, setMapStyle] = useState<'dark'|'satellite'>('dark');
+  const [sweepData, setSweepData] = useState<any>(null);
 
   const isMobile = useIsMobile();
   const startTime = useRef(Date.now());
@@ -353,15 +354,6 @@ export default function Dashboard() {
     (data.commercial_flights?.length||0)+(data.private_flights?.length||0)+(data.private_jets?.length||0)+(data.military_flights?.length||0)
   ), [data.commercial_flights, data.private_flights, data.private_jets, data.military_flights]);
 
-  // Dynamic Threat Level based on active global incidents
-  const threatScore = useMemo(() => (
-    (data.earthquakes?.filter((e: any) => e.magnitude >= 5).length || 0)
-    + (data.weather_events?.filter((w: any) => w.severity === 'high').length || 0) * 2
-    + (data.gdelt?.length || 0) * 0.1
-    + (data.fires?.length || 0) * 0.01
-  ), [data.earthquakes, data.weather_events, data.gdelt, data.fires]);
-  const threatLevel = threatScore >= 10 ? 'CRITICAL' : threatScore >= 5 ? 'HIGH' : threatScore >= 2 ? 'ELEVATED' : 'NOMINAL';
-  const threatColor = threatLevel === 'CRITICAL' ? '#FF1744' : threatLevel === 'HIGH' ? '#FF9500' : threatLevel === 'ELEVATED' ? '#FFD700' : '#00E676';
 
   return (
     <main className="fixed inset-0 w-full h-full bg-[var(--bg-void)] overflow-hidden">
@@ -393,7 +385,8 @@ export default function Dashboard() {
           onMouseCoords={handleMouseCoords} 
           onRightClick={handleRightClick} 
           onViewStateChange={setMapView} 
-          flyToLocation={flyToLocation} 
+          flyToLocation={flyToLocation}
+          sweepData={sweepData}
         />
       </ErrorBoundary>
 
@@ -438,6 +431,13 @@ export default function Dashboard() {
       {/* ── HEADER ── */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 2.5 }} className={`absolute top-3 left-3 md:top-5 md:left-5 z-[200] pointer-events-none flex items-center gap-2 md:gap-3`}>
         <div className="w-7 h-7 md:w-9 md:h-9 flex items-center justify-center relative">
+          {/* Ambient glow ring — slow rotating */}
+          <div className="absolute inset-[-4px] md:inset-[-5px] rounded-full border border-[var(--gold-primary)]/20" style={{ animation: 'osiris-rotate 12s linear infinite' }}>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-[var(--gold-primary)] shadow-[0_0_6px_var(--gold-primary)]" />
+          </div>
+          <div className="absolute inset-[-8px] md:inset-[-10px] rounded-full border border-[var(--gold-primary)]/10" style={{ animation: 'osiris-rotate 20s linear infinite reverse' }}>
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-0.5 h-0.5 rounded-full bg-[var(--gold-primary)]/60" />
+          </div>
           <div className="w-5 h-5 md:w-7 md:h-7 rounded-full border-2 border-[var(--gold-primary)] flex items-center justify-center animate-glow-pulse">
             <div className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 rounded-full bg-[var(--gold-primary)]/30 border border-[var(--gold-primary)]/60" />
           </div>
@@ -452,6 +452,7 @@ export default function Dashboard() {
 
       {/* ── TOP-RIGHT STATUS (desktop) ── */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="status-bar-desktop absolute top-3 right-3 md:top-4 md:right-5 z-[200] pointer-events-none flex items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-mono tracking-widest text-[var(--text-muted)]">
+
         <span>SYS: <span className={backendStatus === 'connected' ? 'text-[var(--alert-green)]' : 'text-[var(--alert-red)]'}>{backendStatus.toUpperCase()}</span></span>
 
         {spaceWeather && <span className="hidden lg:inline">SOLAR: <span style={{ color: spaceWeather.storm_color, fontWeight: 700 }}>Kp{spaceWeather.kp_index}</span></span>}
@@ -464,7 +465,7 @@ export default function Dashboard() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.5 }} className="absolute top-3 right-3 z-[200] pointer-events-none flex items-center gap-2">
           <div className="glass-panel px-2.5 py-1.5 flex items-center gap-2 text-[8px] font-mono tracking-wider">
             <div className={`w-1.5 h-1.5 rounded-full ${backendStatus === 'connected' ? 'bg-[var(--alert-green)]' : 'bg-[var(--alert-red)]'} animate-osiris-pulse`} />
-            <span style={{ color: threatColor, fontWeight: 700 }}>{threatLevel}</span>
+            <span style={{ color: backendStatus === 'connected' ? 'var(--alert-green)' : 'var(--alert-red)', fontWeight: 700 }}>{backendStatus.toUpperCase()}</span>
           </div>
         </motion.div>
       )}
@@ -498,7 +499,7 @@ export default function Dashboard() {
           <div className="flex-1"><SearchBar onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} /></div>
           <div className="relative"><SharePanel mapView={mapView} activeLayers={activeLayers} mouseCoords={mouseCoords} /></div>
         </div>
-        <OsintPanel />
+        <OsintPanel onSweepVisualize={setSweepData} />
         <LiveAlerts data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} onWatchFeed={(url, name) => { setLiveFeedUrl(url); setLiveFeedName(name); }} />
       </div>
 
@@ -669,7 +670,7 @@ export default function Dashboard() {
                   )}
                   {mobilePanel === 'recon' && (
                     <div className="space-y-2">
-                      <OsintPanel isOpen={true} onClose={() => setMobilePanel(null)} isMobile={true} />
+                      <OsintPanel isOpen={true} onClose={() => setMobilePanel(null)} isMobile={true} onSweepVisualize={setSweepData} />
                     </div>
                   )}
                 </div>
@@ -682,7 +683,8 @@ export default function Dashboard() {
       {/* ── BOTTOM CENTER (desktop) ── */}
       {!isMobile && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 3, duration: 0.8 }} className="desktop-only absolute bottom-5 left-1/2 -translate-x-1/2 z-[200] pointer-events-auto">
-          <div className="glass-panel px-5 py-2.5 flex items-center gap-5 osiris-glow">
+          <div className="glass-panel px-5 py-2.5 flex items-center gap-5 osiris-glow" style={{ borderImage: 'linear-gradient(90deg, rgba(212,175,55,0.05), rgba(212,175,55,0.2), rgba(212,175,55,0.05)) 1', borderImageSlice: 1, borderWidth: '1px', borderStyle: 'solid' }}>
+
             <div className="flex flex-col items-center min-w-[110px]">
               <div className="hud-label">COORDINATES</div>
               <div className="text-[10px] font-mono font-bold text-[var(--gold-primary)] tracking-wide">{mouseCoords ? `${mouseCoords.lat.toFixed(4)}, ${mouseCoords.lng.toFixed(4)}` : '—'}</div>
@@ -696,6 +698,15 @@ export default function Dashboard() {
             <div className="flex flex-col items-center">
               <div className="hud-label">ZOOM</div>
               <div className="text-[10px] font-mono font-bold text-[var(--gold-primary)]">{mapView.zoom.toFixed(1)}</div>
+            </div>
+            <div className="w-px h-7 bg-[var(--border-primary)]" />
+            {/* Data Feeds Count */}
+            <div className="flex flex-col items-center min-w-[60px]">
+              <div className="hud-label">FEEDS</div>
+              <div className="flex items-center gap-1">
+                <Activity className="w-3 h-3 text-[var(--cyan-primary)]" />
+                <span className="text-[10px] font-mono font-bold text-[var(--cyan-primary)]">{Object.values(activeLayers).filter(Boolean).length}</span>
+              </div>
             </div>
           </div>
         </motion.div>
