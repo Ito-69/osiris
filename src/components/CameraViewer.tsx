@@ -21,6 +21,29 @@ function isRtspMeEmbed(url: string): boolean {
   return /rtsp\.me\/embed/i.test(url);
 }
 
+function isWindyEmbed(url: string): boolean {
+  return /windy\.com\/webcams\/\d+\/embed/i.test(url);
+}
+
+function isBlcStreamProxy(url: string): boolean {
+  return /\/api\/cctv\/blc-stream/i.test(url);
+}
+
+function isBalticLiveCamHls(url: string): boolean {
+  return /balticlivecam\.com\/blc\/.+\.m3u8/i.test(url);
+}
+
+async function resolveBlcStreamUrl(proxyUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.stream_url === 'string' ? data.stream_url : null;
+  } catch {
+    return null;
+  }
+}
+
 function resolvePlayback(camera: any): ResolvedPlayback {
   if (!camera) return { mode: 'external', url: null };
 
@@ -58,7 +81,7 @@ function resolvePlayback(camera: any): ResolvedPlayback {
   return { mode: 'external', url: null };
 }
 
-async function probeRtspMe(streamUrl: string): Promise<boolean | null> {
+async function probeStreamStatus(streamUrl: string): Promise<boolean | null> {
   try {
     const res = await fetch(`/api/cctv/stream-status?url=${encodeURIComponent(streamUrl)}`, {
       signal: AbortSignal.timeout(10000),
@@ -73,6 +96,14 @@ async function probeRtspMe(streamUrl: string): Promise<boolean | null> {
   }
 }
 
+async function probeRtspMe(streamUrl: string): Promise<boolean | null> {
+  return probeStreamStatus(streamUrl);
+}
+
+async function probeWindy(streamUrl: string): Promise<boolean | null> {
+  return probeStreamStatus(streamUrl);
+}
+
 export default function CameraViewer({ camera, onClose, onLocate }: CameraViewerProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,6 +113,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
   const [playback, setPlayback] = useState<ResolvedPlayback>({ mode: 'external', url: null });
   const [rtspFallback, setRtspFallback] = useState(false);
   const [probingRtsp, setProbingRtsp] = useState(false);
+  const [windyFallback, setWindyFallback] = useState(false);
   const [forceLive, setForceLive] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<{ destroy: () => void } | null>(null);
@@ -111,12 +143,14 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
     if (forceLive && primary.mode === 'iframe' && streamUrl && isRtspMeEmbed(streamUrl)) {
       setProbingRtsp(false);
       setRtspFallback(false);
+      setWindyFallback(false);
       setPlayback(primary);
       setLoading(false);
       return () => { cancelled = true; };
     }
 
     setRtspFallback(false);
+    setWindyFallback(false);
 
     if (
       !forceLive
@@ -137,6 +171,38 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
           setLoading(false);
         } else {
           useJpgFallback();
+        }
+      });
+
+      return () => { cancelled = true; };
+    }
+
+    if (
+      !forceLive
+      && primary.mode === 'iframe'
+      && streamUrl
+      && isWindyEmbed(streamUrl)
+      && feedUrl
+    ) {
+      setProbingRtsp(true);
+      setLoading(true);
+
+      probeWindy(streamUrl).then((available) => {
+        if (cancelled) return;
+        setProbingRtsp(false);
+        // Windy sets frame-ancestors: self *.windy.com — embed breaks in Osiris iframe.
+        // JPG snapshot works; live video opens on windy.com via SOURCE / TRY LIVE.
+        if (available !== false) {
+          setPlayback({ mode: 'jpg', url: feedUrl });
+          setWindyFallback(true);
+          setLoading(false);
+        } else if (useJpgFallback()) {
+          setWindyFallback(true);
+          setLoading(false);
+        } else {
+          setPlayback({ mode: 'external', url: camera.external_url || streamUrl.replace(/\/embed\/?$/, '') });
+          setError(true);
+          setLoading(false);
         }
       });
 
@@ -192,15 +258,38 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
       hlsRef.current?.destroy();
       hlsRef.current = null;
 
+      let sourceUrl = playback.url!;
+      if (isBlcStreamProxy(sourceUrl)) {
+        const resolved = await resolveBlcStreamUrl(sourceUrl);
+        if (cancelled) return;
+        if (!resolved) {
+          if (camera.feed_url) {
+            setPlayback({ mode: 'jpg', url: camera.feed_url });
+            setLoading(false);
+            return;
+          }
+          setLoading(false);
+          setError(true);
+          return;
+        }
+        sourceUrl = resolved;
+      }
+
       try {
         const { default: Hls } = await import('hls.js');
 
         if (cancelled) return;
 
         if (Hls.isSupported()) {
-          const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            xhrSetup: (xhr, url) => {
+              if (isBalticLiveCamHls(url)) xhr.withCredentials = true;
+            },
+          });
           hlsRef.current = hls;
-          hls.loadSource(playback.url!);
+          hls.loadSource(sourceUrl);
           hls.attachMedia(video);
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             if (!cancelled) {
@@ -210,6 +299,12 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
           });
           hls.on(Hls.Events.ERROR, (_e, data) => {
             if (data.fatal && !cancelled) {
+              if (camera.feed_url && isBlcStreamProxy(playback.url!)) {
+                setPlayback({ mode: 'jpg', url: camera.feed_url });
+                setLoading(false);
+                setError(false);
+                return;
+              }
               setLoading(false);
               setError(true);
             }
@@ -260,10 +355,16 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
 
   if (!camera) return null;
 
-  const isLiveVideo = playback.mode === 'hls' || (playback.mode === 'iframe' && !rtspFallback);
+  const isLiveVideo = playback.mode === 'hls' || (playback.mode === 'iframe' && !rtspFallback && !windyFallback);
 
   const tryLiveStream = () => {
     if (!camera?.stream_url) return;
+    const streamUrl = (camera.stream_url as string).replace(/&amp;/g, '&');
+    if (isWindyEmbed(streamUrl)) {
+      const windyPage = (camera.external_url as string) || streamUrl.replace(/\/embed\/?$/, '');
+      window.open(windyPage, '_blank', 'noopener,noreferrer');
+      return;
+    }
     setForceLive(true);
     setLoading(true);
     setError(false);
@@ -292,7 +393,8 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
                 <p className="text-[6px] md:text-[7px] font-mono text-[var(--text-muted)]">
                   {camera.city}, {camera.country} · {camera.source}
                   {rtspFallback && ' · snapshot (rtsp.me limit)'}
-                  {playback.mode === 'jpg' && !rtspFallback && ' · snapshot'}
+                  {windyFallback && ' · snapshot (Windy)'}
+                  {playback.mode === 'jpg' && !rtspFallback && !windyFallback && ' · snapshot'}
                   {playback.mode === 'hls' && ' · HLS'}
                 </p>
               </div>
@@ -323,7 +425,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
                 <div className="text-center">
                   <div className="w-6 h-6 border-2 border-[#39FF14] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                   <span className="text-[8px] font-mono text-[#39FF14] tracking-widest">
-                    {probingRtsp ? 'CHECKING RTSP.ME...' : 'CONNECTING TO FEED...'}
+                    {probingRtsp ? 'CHECKING FEED...' : 'CONNECTING TO FEED...'}
                   </span>
                 </div>
               </div>
@@ -369,6 +471,13 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
                 title={camera.name}
+                onError={() => {
+                  if (camera.feed_url) {
+                    setPlayback({ mode: 'jpg', url: camera.feed_url });
+                    setWindyFallback(isWindyEmbed(playback.url || ''));
+                    setError(false);
+                  }
+                }}
               />
             ) : playback.mode === 'jpg' && imageUrl ? (
               <img
@@ -396,13 +505,13 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
               {camera.lat?.toFixed(4)}, {camera.lng?.toFixed(4)}
             </div>
             <div className="flex gap-2 flex-wrap justify-end">
-              {rtspFallback && camera.stream_url && (
+              {(rtspFallback || windyFallback) && camera.stream_url && (
                 <button
                   type="button"
                   onClick={tryLiveStream}
                   className="flex items-center gap-1 text-[7px] font-mono text-[var(--gold-primary)] hover:underline tracking-wider"
                 >
-                  TRY LIVE
+                  {windyFallback ? 'OPEN LIVE' : 'TRY LIVE'}
                 </button>
               )}
               {externalLink && (

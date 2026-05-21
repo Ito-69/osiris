@@ -1,4 +1,6 @@
 import type { CctvCamera } from './types';
+import { filterHealthyBalkansCameras } from './balkans-filter';
+import { windy } from './windy';
 
 /** Romanian webcams — cities, Black Sea coast, Danube border. */
 const ROMANIA_CAMERAS: CctvCamera[] = [
@@ -20,9 +22,8 @@ const ROMANIA_CAMERAS: CctvCamera[] = [
     name: 'Băilești',
     city: 'Băilești',
     country: 'Romania',
-    feed_url: 'https://images-webcams.windy.com/37/1373238237/current/full/1373238237.jpg',
+    ...windy('1373238237'),
     external_url: 'https://weather-webcam.eu/cam-camera-online-romania-bailesti-live/',
-    source: 'Windy Webcams',
   },
   {
     id: 'ro-brasov',
@@ -87,8 +88,62 @@ const ROMANIA_CAMERAS: CctvCamera[] = [
     external_url: 'https://weather-webcam.eu/balea-lake-karpati-romania-live-kamera-vremeto-ski/',
     source: 'weather-webcam.eu',
   },
+
+  // ── Constanța coast (meteoblue/Windy) ──
+  {
+    id: 'ro-constanta-port-windy',
+    lat: 44.158,
+    lng: 28.652,
+    name: 'Constanța – Port',
+    city: 'Constanța',
+    country: 'Romania',
+    ...windy('1627456589'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/constanta_romania_680963',
+  },
+  {
+    id: 'ro-constanta-mamaia-windy',
+    lat: 44.246,
+    lng: 28.632,
+    name: 'Constanța – Mamaia Cable Park',
+    city: 'Constanța',
+    country: 'Romania',
+    ...windy('1793905807'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/constanta_romania_680963',
+  },
+  {
+    id: 'ro-constanta-centru-windy',
+    lat: 44.176,
+    lng: 28.634,
+    name: 'Constanța – City Center',
+    city: 'Constanța',
+    country: 'Romania',
+    ...windy('1625390551'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/constanta_romania_680963',
+  },
+  {
+    id: 'ro-constanta-zoom-beach-windy',
+    lat: 44.152,
+    lng: 28.638,
+    name: 'Constanța – Zoom Beach',
+    city: 'Constanța',
+    country: 'Romania',
+    ...windy('1793906291'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/constanta_romania_680963',
+  },
+  {
+    id: 'ro-mangalia-marina-windy',
+    lat: 43.802,
+    lng: 28.582,
+    name: 'Mangalia – Marina',
+    city: 'Mangalia',
+    country: 'Romania',
+    ...windy('1793900531'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/constanta_romania_680963',
+  },
 ];
 
 export async function fetchRomaniaCameras(): Promise<CctvCamera[]> {
-  return ROMANIA_CAMERAS.filter((cam) => cam.feed_url || cam.stream_url || cam.external_url);
+  return filterHealthyBalkansCameras(
+    ROMANIA_CAMERAS.filter((cam) => cam.feed_url || cam.stream_url || cam.external_url),
+  );
 }

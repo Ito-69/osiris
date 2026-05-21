@@ -1,13 +1,37 @@
 import { NextResponse } from 'next/server';
+import { extractWindyId, probeWindySnapshot, windySnapshotUrl } from '../windy';
 
-/** rtsp.me shows this when the camera owner's quota is exhausted */
-const RTSP_BLOCKED = /temporarily limited|Top up/i;
+/** rtsp.me failure messages (quota, deleted broadcast, etc.) */
+const RTSP_BLOCKED = /temporarily limited|Top up|broadcast has been deleted|broadcast has been removed|video_off/i;
 
 export async function GET(req: Request) {
   const url = new URL(req.url).searchParams.get('url');
 
-  if (!url || !/rtsp\.me\/embed/i.test(url)) {
-    return NextResponse.json({ available: false, blocked: false, reason: 'not_rtsp_me' });
+  if (!url) {
+    return NextResponse.json({ available: false, reason: 'missing_url' }, { status: 400 });
+  }
+
+  // Windy — snapshot JPG is the health check (embed can load even when stream is dead)
+  const windyId = extractWindyId(url) || (/^\d{8,12}$/.test(url) ? url : null);
+  if (windyId || /images-webcams\.windy\.com/i.test(url)) {
+    const id = windyId || extractWindyId(url) || url.match(/\/(\d{8,12})\//)?.[1];
+    if (!id) {
+      return NextResponse.json({ available: false, provider: 'windy' });
+    }
+    const available = await probeWindySnapshot(id);
+    return NextResponse.json(
+      {
+        available,
+        blocked: !available,
+        provider: 'windy',
+        snapshot_url: windySnapshotUrl(id),
+      },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } },
+    );
+  }
+
+  if (!/rtsp\.me\/embed/i.test(url)) {
+    return NextResponse.json({ available: false, blocked: false, reason: 'unsupported_provider' });
   }
 
   try {

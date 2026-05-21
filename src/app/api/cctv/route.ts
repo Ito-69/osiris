@@ -6,12 +6,13 @@ import { fetchSerbiaCameras } from './serbia';
 import { fetchMacedoniaCameras } from './macedonia';
 import { fetchTurkeyCameras } from './turkey';
 import { fetchRomaniaCameras } from './romania';
+import { fetchItalyCameras } from './italy';
 
 /**
  * OSIRIS — Worldwide CCTV Camera API v2
  * Viewport-aware: pass ?region=xx to load cameras for specific regions
  * Supports: uk, us-east, us-west, us-central, canada, europe, asia,
- * bulgaria, greece, serbia, macedonia, turkey, romania
+ * bulgaria, greece, serbia, macedonia, turkey, romania, italy
  * Or pass ?lat=x&lng=y&radius=5 for proximity-based loading
  */
 
@@ -288,6 +289,7 @@ const REGION_FETCHERS: Record<string, () => Promise<any[]>> = {
   'macedonia': fetchMacedoniaCameras,
   'turkey': fetchTurkeyCameras,
   'romania': fetchRomaniaCameras,
+  'italy': fetchItalyCameras,
 };
 
 // Determine which regions to fetch based on viewport bounds
@@ -310,6 +312,8 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   const inMacedonia = lat > 40.8 && lat < 42.8 && lng > 20.4 && lng < 23.2;
   const inRomania = lat > 43.5 && lat < 48.5 && lng > 20 && lng < 29.8;
   const inTurkey = lat > 35.5 && lat < 42.5 && lng > 25.5 && lng < 45;
+  const inItalyNorth = lat > 43.8 && lat < 47 && lng > 7.5 && lng < 13;
+  const inSardinia = lat > 38.8 && lat < 41.3 && lng > 7.8 && lng < 10.5;
   const inBalkans = inBulgaria || inGreece || inSerbia || inMacedonia || inRomania || inTurkey;
 
   if (lat > 35 && lat < 72 && lng > -11 && lng < 40 && !inBalkans) {
@@ -321,6 +325,7 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (inMacedonia) regions.push('macedonia');
   if (inRomania) regions.push('romania');
   if (inTurkey) regions.push('turkey');
+  if (inItalyNorth || inSardinia) regions.push('italy');
 
   // Asia (includes Middle East, SE Asia, overriding parts of china but that's ok they can both load)
   if ((lat > -10 && lat < 60 && lng > 60 && lng < 150)) regions.push('asia');

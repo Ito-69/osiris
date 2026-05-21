@@ -1,15 +1,6 @@
 import type { CctvCamera } from './types';
-
-/** Windy embed + JPG snapshot helper */
-function windy(id: string) {
-  return {
-    stream_url: `https://www.windy.com/webcams/${id}/embed`,
-    stream_type: 'iframe' as const,
-    feed_url: `https://images-webcams.windy.com/37/${id}/current/full/${id}.jpg`,
-    external_url: `https://www.windy.com/webcams/${id}`,
-    source: 'Windy',
-  };
-}
+import { windy } from './windy';
+import { filterHealthyBalkansCameras } from './balkans-filter';
 
 const TURKEY_CAMERAS: CctvCamera[] = [
   // ── Makaza / Nymfea (GR–TR border, Rhodopes) ──
@@ -35,13 +26,7 @@ const TURKEY_CAMERAS: CctvCamera[] = [
   },
 
   // ── European Thrace — BG border (Edirne / Kırklareli) ──
-  {
-    id: 'tr-kapikule-windy',
-    lat: 41.717, lng: 26.33,
-    name: 'Kapıkule – Customs (TR, BG direction)',
-    city: 'Edirne', country: 'Turkey',
-    ...windy('1375653055'),
-  },
+  // Kapıkule Windy (1375653055) removed — snapshot 404/offline; use entry/exit JPG cams below.
   {
     id: 'tr-kapikule-entry',
     lat: 41.716, lng: 26.334,
@@ -171,5 +156,7 @@ const TURKEY_CAMERAS: CctvCamera[] = [
 ];
 
 export async function fetchTurkeyCameras(): Promise<CctvCamera[]> {
-  return TURKEY_CAMERAS.filter((cam) => cam.feed_url || cam.stream_url || cam.external_url);
+  return filterHealthyBalkansCameras(
+    TURKEY_CAMERAS.filter((cam) => cam.feed_url || cam.stream_url || cam.external_url),
+  );
 }

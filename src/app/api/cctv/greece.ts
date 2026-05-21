@@ -1,4 +1,6 @@
 import type { CctvCamera } from './types';
+import { filterHealthyBalkansCameras } from './balkans-filter';
+import { windy } from './windy';
 
 /** Public IPCamLive credentials exposed on Attiki Odos live-streaming pages. */
 const IPCAMLIVE_API_SECRET = '65586c9ba88ef';
@@ -120,10 +122,90 @@ const GREECE_REGIONAL_CAMERAS: CctvCamera[] = [
     name: 'Xanthi – City (Windy live)',
     city: 'Xanthi',
     country: 'Greece',
-    stream_url: 'https://www.windy.com/webcams/1574440292/embed',
-    stream_type: 'iframe',
+    ...windy('1574440292'),
     external_url: 'https://weather-webcam.eu/xanthi-ksanti-garcia-greece-webcam-live-kamera-online-weather-vremeto/',
-    source: 'Windy Webcams',
+  },
+  // ── Evros / Alexandroupoli (GR–TR border, meteoblue/Windy) ──
+  {
+    id: 'gr-soufli-windy',
+    lat: 41.192,
+    lng: 26.298,
+    name: 'Soufli – South-east',
+    city: 'Soufli',
+    country: 'Greece',
+    ...windy('1656527141'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/%C4%B0psala_republic-of-t%C3%BCrkiye_745148',
+  },
+  {
+    id: 'gr-alexandroupoli-windy',
+    lat: 40.848,
+    lng: 25.874,
+    name: 'Alexandroupoli – City',
+    city: 'Alexandroupoli',
+    country: 'Greece',
+    ...windy('1793899460'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/%C4%B0psala_republic-of-t%C3%BCrkiye_745148',
+  },
+  {
+    id: 'gr-alexandroupoli-port-windy',
+    lat: 40.835,
+    lng: 25.885,
+    name: 'Alexandroupoli – Port & Lighthouse',
+    city: 'Alexandroupoli',
+    country: 'Greece',
+    ...windy('1686575524'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/%C4%B0psala_republic-of-t%C3%BCrkiye_745148',
+  },
+  {
+    id: 'gr-didymoticho-windy',
+    lat: 41.348,
+    lng: 26.496,
+    name: 'Didymoticho',
+    city: 'Didymoticho',
+    country: 'Greece',
+    ...windy('1599126465'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/%C4%B0psala_republic-of-t%C3%BCrkiye_745148',
+  },
+  // ── Thessaloniki (meteoblue/Windy) ──
+  {
+    id: 'gr-thessaloniki-meteothes-windy',
+    lat: 40.641,
+    lng: 22.945,
+    name: 'Thessaloniki – meteothes.gr',
+    city: 'Thessaloniki',
+    country: 'Greece',
+    ...windy('1341763045'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/thessaloniki_greece_734077',
+  },
+  {
+    id: 'gr-thessaloniki-city-windy',
+    lat: 40.638,
+    lng: 22.942,
+    name: 'Thessaloniki – City Camera',
+    city: 'Thessaloniki',
+    country: 'Greece',
+    ...windy('1171040535'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/thessaloniki_greece_734077',
+  },
+  {
+    id: 'gr-thessaloniki-polichni-windy',
+    lat: 40.658,
+    lng: 22.948,
+    name: 'Thessaloniki – Polichni',
+    city: 'Thessaloniki',
+    country: 'Greece',
+    ...windy('1587509768'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/thessaloniki_greece_734077',
+  },
+  {
+    id: 'gr-thessaloniki-oraiokastro-windy',
+    lat: 40.664,
+    lng: 22.918,
+    name: 'Thessaloniki – Oraiokastro',
+    city: 'Thessaloniki',
+    country: 'Greece',
+    ...windy('1322588481'),
+    external_url: 'https://www.meteoblue.com/en/weather/webcams/thessaloniki_greece_734077',
   },
   {
     id: 'gr-thassos-prinos',
@@ -221,5 +303,5 @@ export async function fetchGreeceCameras(): Promise<CctvCamera[]> {
     .filter((result): result is PromiseFulfilledResult<CctvCamera> => result.status === 'fulfilled')
     .map((result) => result.value);
 
-  return [...attiki, ...GREECE_REGIONAL_CAMERAS];
+  return filterHealthyBalkansCameras([...attiki, ...GREECE_REGIONAL_CAMERAS]);
 }
