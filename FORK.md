@@ -1,85 +1,143 @@
 # Fork: Ito-69/osiris
 
-Този репозиторий е **форк** на [simplifaisoul/osiris](https://github.com/simplifaisoul/osiris) — оригиналния OSIRIS OSINT dashboard. Upstream `master` остава глобалният проект; тук са добавени локални подобрения за **Балканите** и **истински live CCTV**.
+This repository is a **fork** of [simplifaisoul/osiris](https://github.com/simplifaisoul/osiris) — the original OSIRIS OSINT dashboard. Upstream `master` remains the global project; this fork adds local improvements focused on the **Balkans**, **northern Italy**, and **reliable live CCTV playback**.
 
-## Upstream vs. този fork
+## Upstream vs. this fork
 
-| | [simplifaisoul/osiris](https://github.com/simplifaisoul/osiris) | [Ito-69/osiris](https://github.com/Ito-69/osiris) (този fork) |
+| | [simplifaisoul/osiris](https://github.com/simplifaisoul/osiris) | [Ito-69/osiris](https://github.com/Ito-69/osiris) (this fork) |
 |---|----------------------------------------------------------------|----------------------------------------------------------------|
-| **Обхват** | Глобални слоеве: полети, земетресения, новини, CCTV (UK, US, EU…) | Същото + **~80 камери** в BG, GR, RS, MK, TR, RO |
-| **CCTV региони** | `uk`, `us-*`, `canada`, `europe`, `asia` | + `bulgaria`, `greece`, `serbia`, `macedonia`, `turkey`, `romania` |
-| **Преглед на камера** | Статично JPG изображение, обновяване на ~30 s | **HLS видео**, **iframe embeds** (YouTube, rtsp.me, ipcamlive) или JPG на 5 s |
-| **Цел** | Публичен live demo на [osirislive.app](https://osirislive.app) | Личен/локален deploy с фокус върху съседни държави и гранични пунктове |
+| **Scope** | Global layers: flights, earthquakes, news, CCTV (UK, US, EU…) | Same + **~115 Balkans cameras** (BG, GR, RS, MK, TR, RO) and **17 Italy cameras** (Milan, Verona, Sardinia) |
+| **CCTV regions** | `uk`, `us-*`, `canada`, `europe`, `asia` | + `bulgaria`, `greece`, `serbia`, `macedonia`, `turkey`, `romania`, `italy` |
+| **Camera viewer** | Static JPG image, ~30 s refresh | **HLS video**, **iframe embeds** (YouTube, rtsp.me, IPCamLive), **Windy JPG snapshots** (5 s), BalticLiveCam HLS proxy |
+| **Health filtering** | None | Offline/dead feeds hidden via audit script + generated blocklist |
+| **Map default view** | Global | Centered on Bulgaria / Balkans (`[25.48, 42.70]`, zoom ~6.5) |
+| **Goal** | Public live demo at [osirislive.app](https://osirislive.app) | Personal/local deploy with focus on neighbouring countries, border crossings, and Mediterranean coast |
 
-Всичко извън CCTV модулите и `CameraViewer` е **непроменено** спрямо upstream — без форк на целия проект, само допълнения.
+Everything outside the CCTV modules, `CameraViewer`, Balkans OSINT routes, and map defaults is **unchanged** from upstream — a targeted fork, not a full rewrite.
 
-## Какво добавя fork-ът
+## What this fork adds
 
-### 1. Балкански CCTV източници
+### 1. Balkans & Italy CCTV sources
 
-Нови API модули под `src/app/api/cctv/`:
+New API modules under `src/app/api/cctv/`:
 
-- **bulgaria.ts** — Sofia, Plovdiv, Varna, Burgas, курорти, GKPP (Kulata, Makaza, Kapitan Andreevo…) + **~350 камери** от free-webcambg.com (`bulgaria-fwcbg.generated.ts`, ~170 live rtsp.me)
-- **greece.ts** — Attiki Odos (Атина) + **Солун, Кavala, Халкидики/Ситония, Ксанти, Тасос, Промахон**
-- **serbia.ts** — Belgrade, Niš, граница Gradina
-- **macedonia.ts** — Skopje, Ohrid, гранични пунктове (Neotel HLS)
-- **turkey.ts** — Edirne/Kırklareli borders (Kapıkule, Hamzabeyli, Dereköy, İpsala, Pazarkule), Tekirdağ, **Istanbul** (Galata, Sultanahmet, Bosphorus, Yavuz Bridge)
-- **romania.ts** — Constanța, Eforie Sud, гранични преходи
+| Module | Coverage | Sources |
+|--------|----------|---------|
+| **bulgaria.ts** | Sofia, Plovdiv, Varna, Burgas, resorts, Stara Planina, border crossings (GKPP) | free-webcambg.com (~350 catalogued, ~76 live rtsp.me after audit), meteoblue/Windy, weather-webcam.eu, webcamera24.com, BalticLiveCam, meter.ac |
+| **greece.ts** | Attiki Odos (Athens), Thessaloniki, Kavala, Halkidiki/Sithonia, Xanthi, Thasos, Promachonas, Evros/Alexandroupoli | meteoblue/Windy, weather-webcam.eu, Attiki Odos HLS |
+| **serbia.ts** | Belgrade, Niš, Gradina border | Neotel HLS, weather-webcam.eu |
+| **macedonia.ts** | Skopje, Ohrid, border crossings | Neotel HLS |
+| **turkey.ts** | Edirne/Kırklareli borders, Tekirdağ, Istanbul (Galata, Sultanahmet, Bosphorus) | meteoblue/Windy, weather-webcam.eu |
+| **romania.ts** | Bucharest, Brașov, Constanța coast, Danube border crossings, Eforie Sud | meteoblue/Windy, weather-webcam.eu, IPCamLive |
+| **italy.ts** | Milan (Duomo, CityLife, Porta Nuova), Verona, Sardinia (Cagliari, Olbia / Costa Smeralda) | meteoblue/Windy |
 
-Зареждане: `GET /api/cctv?region=bulgaria` (или `greece`, `serbia`, …) или `?region=all`.
+Load cameras via `GET /api/cctv?region=bulgaria` (or `greece`, `italy`, …) or `?region=all`.
 
-### 2. Истински live streaming
+**Approximate live counts** (after health audit, May 2026):
 
-- **`stream_type: hls`** — `.m3u8` потоци (Burgas Smart, Attiki Odos, Neotel, AMSS Serbia)
-- **`stream_type: iframe`** — вградени плейъри (YouTube GKPP Makaza, rtsp.me, ipcamlive)
-- **`stream_type: jpg`** — snapshot feeds (UAB, home-solutions.bg) — по-бърз refresh (5 s), не е видео
+| Region | On map |
+|--------|--------|
+| Bulgaria | ~64 |
+| Greece | ~23 |
+| Turkey | ~16 |
+| Romania | ~11 |
+| Italy | 17 |
+| Serbia / N. Macedonia | varies |
 
-Плейърът е в `src/components/CameraViewer.tsx` (зависимост: `hls.js`).
+### 2. Windy / meteoblue integration
 
-### 3. Карта
+- **`windy.ts`** — shared helper for Windy webcam IDs, snapshot URLs, and live probes
+- Cameras sourced from [meteoblue.com](https://www.meteoblue.com) webcam pages (imgproxy → Windy ID)
+- **Viewer behaviour:** Windy iframe embeds are blocked by CSP (`frame-ancestors`); the viewer shows a **JPG snapshot** refreshed every 5 s, with an **OPEN LIVE** link to windy.com
 
-`OsirisMap.tsx` подава `stream_url` и `stream_type` към viewer-а при клик на CCTV маркер.
+### 3. True live streaming & proxies
 
-**Стартов изглед:** центрирана върху България/Балканите (`[25.48, 42.70]`, zoom ~6.5), вместо глобален изглед.
+| `stream_type` | Use case | Examples |
+|---------------|----------|----------|
+| **hls** | `.m3u8` streams | Burgas Smart, Attiki Odos, Neotel, AMSS Serbia, BalticLiveCam |
+| **iframe** | Embedded players | YouTube (GKPP Makaza), rtsp.me, IPCamLive |
+| **jpg** | Snapshot feeds | UAB, home-solutions.bg, Windy snapshots |
 
-### 4. Балкански OSINT източници
+Additional infrastructure:
 
-| Слой | Източник | Какво добавя |
-|------|----------|--------------|
-| **Земетресения** | [NIGGG-BAS](https://ndc.niggg.bas.bg/) | Регионална мрежа (30 дни, по-ниски magnitude) — merge с USGS |
-| **Бедствия / alerts** | [GDACS](https://www.gdacs.org/) | EU civil protection — филтрирани за Балканите bbox |
-| **Новини** | [Dnevnik.bg](https://www.dnevnik.bg/rss/) + [Actualno](https://www.actualno.com/rss/actualno.xml) + [Mediapool](https://www.mediapool.bg/rss/) + BBC Europe | BG/EU RSS + keyword geo-mapping (София, Варна, Балкани…) |
+- **`/api/cctv/blc-stream`** — proxies BalticLiveCam HLS (signed token → m3u8)
+- **`/api/cctv/stream-status`** — probes rtsp.me, Windy, and other feeds for offline/quota/deleted states
+- **`CameraViewer.tsx`** — HLS via `hls.js`, iframe fallback, JPG refresh, rtsp.me quota detection
 
-Споделена логика: `src/lib/bulgaria-sources.ts`.
+### 4. Health audit & offline filtering
 
-## Локален Docker deploy
+Broken feeds are kept in the repo but **hidden at runtime**:
 
-Fork-ът се пуска локално от отделна папка (не е част от git repo-то):
+- **`scripts/audit-balkans-cctv.mjs`** — probes all Balkans cameras (Windy JPG, rtsp.me embed, HTTP feeds)
+- **`balkans-offline.generated.ts`** — generated blocklist (~348 offline IDs)
+- **`balkans-filter.ts`** — `filterHealthyBalkansCameras()` applied in BG/GR/TR/RO fetchers
+
+Re-run audit after source changes:
+
+```bash
+node scripts/audit-balkans-cctv.mjs --api http://localhost:3000
+```
+
+Utility scripts:
+
+- **`scripts/generate-bg-fwcbg.mjs`** — scrape free-webcambg.com catalog
+- **`scripts/scrape-weather-webcam.mjs`** — scrape weather-webcam.eu pages
+
+### 5. Balkans OSINT data sources
+
+| Layer | Source | What it adds |
+|-------|--------|--------------|
+| **Earthquakes** | [NIGGG-BAS](https://ndc.niggg.bas.bg/) | Regional network (30 days, lower magnitudes) — merged with USGS |
+| **Disasters / alerts** | [GDACS](https://www.gdacs.org/) | EU civil protection — filtered to Balkans bbox |
+| **News** | Dnevnik.bg, Actualno, Mediapool, BBC Europe RSS | BG/EU feeds + keyword geo-mapping (Sofia, Varna, Balkans…) |
+
+Shared logic: `src/lib/bulgaria-sources.ts`.
+
+News UX improvements: deduplicated headlines, region-aware sorting in `IntelFeed` / `LiveAlerts`.
+
+### 6. Map
+
+- `OsirisMap.tsx` passes `stream_url` and `stream_type` to the viewer on CCTV marker click
+- Default viewport centered on Bulgaria / Balkans instead of a global view
+
+## Local Docker deploy
+
+The fork runs locally from a wrapper directory (not part of the git repo):
 
 ```bash
 git clone git@github.com:Ito-69/osiris.git repo
-# compose.yaml в родителската папка — build context: ./repo
+# compose.yaml in the parent folder — build context: ./repo
 docker compose up -d --build
 # → http://localhost:3000
 ```
 
-Примерна структура: `osiris/compose.yaml` + `osiris/repo/` (clone на този fork).
+Example layout: `osiris/compose.yaml` + `osiris/repo/` (clone of this fork).
 
-## Синхронизация с upstream
+## Syncing with upstream
 
 ```bash
-git remote add upstream https://github.com/simplifaisoul/osiris.git   # веднъж
+git remote add upstream https://github.com/simplifaisoul/osiris.git   # once
 git fetch upstream
-git merge upstream/master   # или rebase, ако предпочиташ линейна история
+git merge upstream/master   # or rebase for a linear history
 ```
 
-След merge провери конфликти в `src/app/api/cctv/route.ts` и `CameraViewer.tsx` — там са основните локални промени.
+After merge, check conflicts in `src/app/api/cctv/route.ts` and `src/components/CameraViewer.tsx` — those files contain most fork-specific changes.
 
-## Комити само в този fork
+## Branch & commits (this fork only)
 
-- `9391982` — Balkans CCTV coverage (BG, GR, RS, MK, TR, RO)
-- `9b87658` — HLS + iframe live playback, по-бърз JPG refresh
+Branch: **`custom/bg-gr-cctv`**
+
+| Commit | Summary |
+|--------|---------|
+| `9391982` | Balkans CCTV coverage (BG, GR, RS, MK, TR, RO) |
+| `9b87658` | HLS + iframe live playback, faster JPG refresh |
+| `3e09474` | Document fork differences (FORK.md) |
+| `2b874f9` | Varna live CCTV via rtsp.me embeds |
+| `4bc39c2` | Full free-webcambg catalog + northern Greece |
+| `6016e8e` | Center map on Bulgaria; Balkans OSINT sources |
+| `0829c40` | Balkans news UX; expand Turkey CCTV; rtsp.me playback fix |
+| `fb965c1` | Windy/meteoblue cameras; health filtering; Italy; viewer fixes |
 
 ---
 
-*Upstream лиценз: MIT. Fork-ът запазва същия лиценз; допълненията не са официална част от simplifaisoul/osiris.*
+*Upstream license: MIT. This fork keeps the same license; additions are not an official part of simplifaisoul/osiris.*

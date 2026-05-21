@@ -16,7 +16,7 @@
 
 </div>
 
-> **Fork ([Ito-69/osiris](https://github.com/Ito-69/osiris)):** Разширение на upstream с **Balkans CCTV** (~80 камери) и **in-app live streaming** (HLS / iframe / бърз JPG refresh). Разликите с [simplifaisoul/osiris](https://github.com/simplifaisoul/osiris) → **[FORK.md](FORK.md)**.
+> **Fork ([Ito-69/osiris](https://github.com/Ito-69/osiris)):** Extends upstream with **Balkans + Italy CCTV** (~130 cameras), **Windy/meteoblue feeds**, health filtering, and **in-app live streaming** (HLS / iframe / JPG snapshots). Differences from [simplifaisoul/osiris](https://github.com/simplifaisoul/osiris) → **[FORK.md](FORK.md)**.
 
 ---
 
