@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, RefreshCw, MapPin, Camera, Maximize2 } from 'lucide-react';
 
@@ -12,7 +12,16 @@ interface CameraViewerProps {
 
 type PlaybackMode = 'hls' | 'iframe' | 'jpg' | 'external';
 
-function resolvePlayback(camera: any): { mode: PlaybackMode; url: string | null } {
+export interface ResolvedPlayback {
+  mode: PlaybackMode;
+  url: string | null;
+}
+
+function isRtspMeEmbed(url: string): boolean {
+  return /rtsp\.me\/embed/i.test(url);
+}
+
+function resolvePlayback(camera: any): ResolvedPlayback {
   if (!camera) return { mode: 'external', url: null };
 
   const streamUrl = camera.stream_url as string | undefined;
@@ -49,16 +58,100 @@ function resolvePlayback(camera: any): { mode: PlaybackMode; url: string | null 
   return { mode: 'external', url: null };
 }
 
+async function probeRtspMe(streamUrl: string): Promise<boolean | null> {
+  try {
+    const res = await fetch(`/api/cctv/stream-status?url=${encodeURIComponent(streamUrl)}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.blocked === true || data.available === false) return false;
+    if (data.available === true) return true;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export default function CameraViewer({ camera, onClose, onLocate }: CameraViewerProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
+  const [playback, setPlayback] = useState<ResolvedPlayback>({ mode: 'external', url: null });
+  const [rtspFallback, setRtspFallback] = useState(false);
+  const [probingRtsp, setProbingRtsp] = useState(false);
+  const [forceLive, setForceLive] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<{ destroy: () => void } | null>(null);
 
-  const playback = useMemo(() => resolvePlayback(camera), [camera]);
+  useEffect(() => {
+    setForceLive(false);
+  }, [camera?.id]);
+
+  // Pick iframe/HLS/JPG; probe rtsp.me and fall back to JPG snapshot when quota-blocked
+  useEffect(() => {
+    if (!camera) return;
+
+    let cancelled = false;
+    const primary = resolvePlayback(camera);
+    const streamUrl = (camera.stream_url as string | undefined)?.replace(/&amp;/g, '&');
+    const feedUrl = camera.feed_url as string | undefined;
+
+    setError(false);
+
+    const useJpgFallback = () => {
+      if (!feedUrl) return false;
+      setPlayback({ mode: 'jpg', url: feedUrl });
+      setRtspFallback(true);
+      return true;
+    };
+
+    if (forceLive && primary.mode === 'iframe' && streamUrl && isRtspMeEmbed(streamUrl)) {
+      setProbingRtsp(false);
+      setRtspFallback(false);
+      setPlayback(primary);
+      setLoading(false);
+      return () => { cancelled = true; };
+    }
+
+    setRtspFallback(false);
+
+    if (
+      !forceLive
+      && primary.mode === 'iframe'
+      && streamUrl
+      && isRtspMeEmbed(streamUrl)
+      && feedUrl
+    ) {
+      setProbingRtsp(true);
+      setLoading(true);
+
+      probeRtspMe(streamUrl).then((available) => {
+        if (cancelled) return;
+        setProbingRtsp(false);
+        if (available === true) {
+          setPlayback(primary);
+          setRtspFallback(false);
+          setLoading(false);
+        } else {
+          useJpgFallback();
+        }
+      });
+
+      return () => { cancelled = true; };
+    }
+
+    setProbingRtsp(false);
+    setPlayback(primary);
+    if (primary.mode === 'iframe' || primary.mode === 'external') {
+      setLoading(false);
+    }
+
+    return () => { cancelled = true; };
+  }, [camera, forceLive]);
+
   const externalLink = camera?.external_url || camera?.stream_url || camera?.feed_url;
 
   // ── JPG snapshot refresh (every 5s) ──
@@ -153,21 +246,28 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
     };
   }, [camera, playback.mode, playback.url]);
 
-  // ── iframe / external-only reset ──
+  // ── iframe reset (non-rtsp or forced live) ──
   useEffect(() => {
     if (!camera) return;
-    if (playback.mode === 'iframe') {
+    if (playback.mode === 'iframe' && !probingRtsp) {
       setLoading(false);
       setError(false);
     } else if (playback.mode === 'external') {
       setLoading(false);
       setError(false);
     }
-  }, [camera, playback.mode]);
+  }, [camera, playback.mode, probingRtsp]);
 
   if (!camera) return null;
 
-  const isLiveVideo = playback.mode === 'hls' || playback.mode === 'iframe';
+  const isLiveVideo = playback.mode === 'hls' || (playback.mode === 'iframe' && !rtspFallback);
+
+  const tryLiveStream = () => {
+    if (!camera?.stream_url) return;
+    setForceLive(true);
+    setLoading(true);
+    setError(false);
+  };
 
   return (
     <AnimatePresence>
@@ -191,7 +291,8 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
                 <h3 className="text-[10px] md:text-[11px] font-mono font-bold text-[#39FF14] tracking-wider truncate">{camera.name}</h3>
                 <p className="text-[6px] md:text-[7px] font-mono text-[var(--text-muted)]">
                   {camera.city}, {camera.country} · {camera.source}
-                  {playback.mode === 'jpg' && ' · snapshot'}
+                  {rtspFallback && ' · snapshot (rtsp.me limit)'}
+                  {playback.mode === 'jpg' && !rtspFallback && ' · snapshot'}
                   {playback.mode === 'hls' && ' · HLS'}
                 </p>
               </div>
@@ -221,7 +322,9 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
               <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
                 <div className="text-center">
                   <div className="w-6 h-6 border-2 border-[#39FF14] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                  <span className="text-[8px] font-mono text-[#39FF14] tracking-widest">CONNECTING TO FEED...</span>
+                  <span className="text-[8px] font-mono text-[#39FF14] tracking-widest">
+                    {probingRtsp ? 'CHECKING RTSP.ME...' : 'CONNECTING TO FEED...'}
+                  </span>
                 </div>
               </div>
             )}
@@ -292,7 +395,16 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
             <div className="text-[7px] md:text-[8px] font-mono text-[var(--text-muted)]">
               {camera.lat?.toFixed(4)}, {camera.lng?.toFixed(4)}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap justify-end">
+              {rtspFallback && camera.stream_url && (
+                <button
+                  type="button"
+                  onClick={tryLiveStream}
+                  className="flex items-center gap-1 text-[7px] font-mono text-[var(--gold-primary)] hover:underline tracking-wider"
+                >
+                  TRY LIVE
+                </button>
+              )}
               {externalLink && (
                 <a href={externalLink} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-1 text-[7px] font-mono text-[#39FF14] hover:underline tracking-wider">

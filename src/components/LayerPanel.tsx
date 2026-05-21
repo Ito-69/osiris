@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import {
   Plane, Satellite, Activity, Globe, Radio, Eye,
   Shield, Sun, AlertTriangle, Camera, Flame, Target,
-  CloudLightning, Radiation, Tv, Anchor, Ship,
+  CloudLightning, Radiation, Tv, Anchor, Ship, Newspaper,
 } from 'lucide-react';
 
 interface LayerPanelProps {
@@ -23,6 +23,7 @@ const LAYER_CONFIG = [
   { key: 'satellites', label: 'Satellites', icon: Satellite, color: '#D4AF37', dataKey: 'satellites' },
   { key: 'cctv', label: 'CCTV Cameras', icon: Camera, color: '#39FF14', dataKey: 'cameras' },
   { key: 'live_news', label: 'Live News Feeds', icon: Tv, color: '#FF4081', dataKey: 'live_feeds' },
+  { key: 'news_intel', label: 'SIGINT News (RSS)', icon: Newspaper, color: '#D4AF37', dataKey: 'news' },
   { key: 'earthquakes', label: 'Earthquakes (24h)', icon: Activity, color: '#FF9500', dataKey: 'earthquakes' },
   { key: 'fires', label: 'Active Fires', icon: Flame, color: '#FF6B00', dataKey: 'fires' },
   { key: 'weather', label: 'Severe Weather', icon: CloudLightning, color: '#E040FB', dataKey: 'weather_events' },

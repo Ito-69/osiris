@@ -23,7 +23,7 @@
 - **greece.ts** — Attiki Odos (Атина) + **Солун, Кavala, Халкидики/Ситония, Ксанти, Тасос, Промахон**
 - **serbia.ts** — Belgrade, Niš, граница Gradina
 - **macedonia.ts** — Skopje, Ohrid, гранични пунктове (Neotel HLS)
-- **turkey.ts** — Edirne, Kapıkule, Makaza
+- **turkey.ts** — Edirne/Kırklareli borders (Kapıkule, Hamzabeyli, Dereköy, İpsala, Pazarkule), Tekirdağ, **Istanbul** (Galata, Sultanahmet, Bosphorus, Yavuz Bridge)
 - **romania.ts** — Constanța, Eforie Sud, гранични преходи
 
 Зареждане: `GET /api/cctv?region=bulgaria` (или `greece`, `serbia`, …) или `?region=all`.
@@ -48,7 +48,7 @@
 |------|----------|--------------|
 | **Земетресения** | [NIGGG-BAS](https://ndc.niggg.bas.bg/) | Регионална мрежа (30 дни, по-ниски magnitude) — merge с USGS |
 | **Бедствия / alerts** | [GDACS](https://www.gdacs.org/) | EU civil protection — филтрирани за Балканите bbox |
-| **Новини** | [Actualno](https://www.actualno.com/rss/actualno.xml) + [Mediapool](https://www.mediapool.bg/rss/) + BBC Europe | BG/EU RSS + keyword geo-mapping (София, Варна, Балкани…) |
+| **Новини** | [Dnevnik.bg](https://www.dnevnik.bg/rss/) + [Actualno](https://www.actualno.com/rss/actualno.xml) + [Mediapool](https://www.mediapool.bg/rss/) + BBC Europe | BG/EU RSS + keyword geo-mapping (София, Варна, Балкани…) |
 
 Споделена логика: `src/lib/bulgaria-sources.ts`.
 

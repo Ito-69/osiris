@@ -9,12 +9,22 @@ import { NextResponse } from 'next/server';
 const FEEDS: Record<string, string> = {
   BBC: 'https://feeds.bbci.co.uk/news/world/rss.xml',
   BBCEurope: 'https://feeds.bbci.co.uk/news/world/europe/rss.xml',
+  Dnevnik: 'https://www.dnevnik.bg/rss/',
   Actualno: 'https://www.actualno.com/rss/actualno.xml',
   Mediapool: 'https://www.mediapool.bg/rss/',
   AlJazeera: 'https://www.aljazeera.com/xml/rss/all.xml',
   NPR: 'https://feeds.npr.org/1004/rss.xml',
   GDACS: 'https://www.gdacs.org/xml/rss.xml',
   NHK: 'https://www3.nhk.or.jp/nhkworld/rss/world.xml',
+};
+
+const BG_NEWS_SOURCES = new Set(['Dnevnik', 'Actualno', 'Mediapool']);
+const SOFIA_COORDS: [number, number] = [42.698, 25.485];
+
+// Node's default User-Agent ("node") is blocked by TollBit on dnevnik.bg (402).
+const RSS_FETCH_HEADERS: HeadersInit = {
+  'User-Agent': 'Mozilla/5.0 (compatible; OSIRIS/1.0; +https://github.com/Ito-69/osiris)',
+  Accept: 'application/rss+xml, application/xml, text/xml, */*',
 };
 
 const RISK_KEYWORDS = ['war','missile','strike','attack','crisis','tension','military','conflict','defense','clash','nuclear','invasion','bomb','drone','weapon','sanctions','ceasefire','escalation'];
@@ -98,7 +108,10 @@ export async function GET() {
     // Fetch all feeds in parallel
     const feedPromises = Object.entries(FEEDS).map(async ([source, url]) => {
       try {
-        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        const res = await fetch(url, {
+          signal: AbortSignal.timeout(8000),
+          headers: RSS_FETCH_HEADERS,
+        });
         if (!res.ok) return [];
         const xml = await res.text();
         const items = parseRSSItems(xml);
@@ -120,7 +133,9 @@ export async function GET() {
     // Score, classify, and sort
     const newsItems = allArticles.map(article => {
       const riskScore = scoreRisk(article.title, article.description || '');
-      const coords = findCoords(article.title + ' ' + (article.description || ''));
+      const keywordCoords = findCoords(article.title + ' ' + (article.description || ''));
+      const coords = keywordCoords
+        ?? (BG_NEWS_SOURCES.has(article.source) ? SOFIA_COORDS : null);
 
       return {
         title: article.title,
@@ -129,6 +144,7 @@ export async function GET() {
         source: article.source,
         risk_score: riskScore,
         coords: coords ? [coords[0], coords[1]] : null,
+        coords_default: !keywordCoords && BG_NEWS_SOURCES.has(article.source),
         machine_assessment: null,
       };
     });
