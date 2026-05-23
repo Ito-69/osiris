@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 
 /**
@@ -59,3 +60,4 @@ export async function GET() {
     headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=172800' },
   });
 }
+

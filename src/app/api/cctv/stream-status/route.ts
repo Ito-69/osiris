@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
+import { safeFetch } from '@/lib/ssrf-guard';
 import { extractWindyId, probeWindySnapshot, windySnapshotUrl } from '../windy';
+
+export const dynamic = 'force-dynamic';
 
 /** rtsp.me failure messages (quota, deleted broadcast, etc.) */
 const RTSP_BLOCKED = /temporarily limited|Top up|broadcast has been deleted|broadcast has been removed|video_off/i;
@@ -35,13 +38,12 @@ export async function GET(req: Request) {
   }
 
   try {
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       signal: AbortSignal.timeout(8000),
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; OSIRIS/1.0; +https://github.com/Ito-69/osiris)',
         Accept: 'text/html,application/xhtml+xml',
       },
-      next: { revalidate: 300 },
     });
 
     if (!res.ok) {

@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -119,3 +120,4 @@ function parseCSV(csv: string): any[] {
 
   return fires;
 }
+

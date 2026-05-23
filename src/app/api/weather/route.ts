@@ -11,7 +11,6 @@ export async function GET() {
     const [eonetRes, gdacsAlerts] = await Promise.all([
       fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=100', {
         signal: AbortSignal.timeout(10000),
-        next: { revalidate: 1800 },
       }),
       fetchGdacsBalkansAlerts().catch(() => []),
     ]);

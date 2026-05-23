@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 
 /**
@@ -272,3 +273,4 @@ function aggregateJamming(points: any[], threshold: number) {
       count: z.count,
     }));
 }
+

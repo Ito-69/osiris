@@ -7,12 +7,13 @@ import { fetchMacedoniaCameras } from './macedonia';
 import { fetchTurkeyCameras } from './turkey';
 import { fetchRomaniaCameras } from './romania';
 import { fetchItalyCameras } from './italy';
+import { fetchAustraliaCameras } from './australia';
 
 /**
  * OSIRIS — Worldwide CCTV Camera API v2
  * Viewport-aware: pass ?region=xx to load cameras for specific regions
  * Supports: uk, us-east, us-west, us-central, canada, europe, asia,
- * bulgaria, greece, serbia, macedonia, turkey, romania, italy
+ * bulgaria, greece, serbia, macedonia, turkey, romania, italy, australia
  * Or pass ?lat=x&lng=y&radius=5 for proximity-based loading
  */
 
@@ -290,6 +291,7 @@ const REGION_FETCHERS: Record<string, () => Promise<any[]>> = {
   'turkey': fetchTurkeyCameras,
   'romania': fetchRomaniaCameras,
   'italy': fetchItalyCameras,
+  'australia': fetchAustraliaCameras,
 };
 
 // Determine which regions to fetch based on viewport bounds
@@ -327,10 +329,10 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (inTurkey) regions.push('turkey');
   if (inItalyNorth || inSardinia) regions.push('italy');
 
-  // Asia (includes Middle East, SE Asia, overriding parts of china but that's ok they can both load)
-  if ((lat > -10 && lat < 60 && lng > 60 && lng < 150)) regions.push('asia');
-  // Australia explicitly
-  if (lat > -45 && lat < -10 && lng > 110 && lng < 155) regions.push('asia');
+  // Asia (Middle East, SE Asia)
+  if (lat > -10 && lat < 60 && lng > 60 && lng < 150) regions.push('asia');
+  // Australia
+  if (lat > -45 && lat < -10 && lng > 110 && lng < 155) regions.push('australia');
   
   return regions.length > 0 ? regions : ['uk', 'us-east']; // Default fallback
 }

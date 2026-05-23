@@ -11,7 +11,6 @@ export async function GET() {
     const [usgsRes, nigggEvents] = await Promise.all([
       fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson', {
         signal: AbortSignal.timeout(10000),
-        next: { revalidate: 60 },
       }),
       fetchNigggEarthquakes().catch(() => []),
     ]);
